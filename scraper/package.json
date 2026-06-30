@@ -1,0 +1,17 @@
+{
+  "name": "lexcis-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "scrape": "node scraper.js",
+    "scrape:civil": "node scraper.js civil",
+    "scrape:labor": "node scraper.js labor",
+    "scrape:tax": "node scraper.js tax",
+    "import": "node import-manual.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.5",
+    "puppeteer": "^22.10.0"
+  }
+}

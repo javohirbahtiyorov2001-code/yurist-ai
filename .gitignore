@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*.pptx
+*.pdf
+*.mp4
+*.mp3
+~$*
