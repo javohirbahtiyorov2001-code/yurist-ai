@@ -19,9 +19,11 @@ async function searchLawArticles(query, jurisdiction = 'UZ') {
   return rows
 }
 
-export async function legalChat(messages, jurisdiction = 'UZ') {
+export async function legalChat(messages, jurisdiction = 'UZ', attachment = null) {
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
-  const articles = await searchLawArticles(lastUserMessage, jurisdiction)
+  // Include extracted PDF text in retrieval keywords so law search still works for documents
+  const retrievalQuery = attachment?.kind === 'text' ? `${lastUserMessage} ${attachment.text}`.slice(0, 2000) : lastUserMessage
+  const articles = await searchLawArticles(retrievalQuery, jurisdiction)
 
   const hasArticles = articles.length > 0
 
@@ -60,11 +62,28 @@ YOUR STRUCTURE — always follow this format:
 
 ${lawContext}`
 
+  // Build Claude messages; attach image (vision) or extracted PDF text to the last user turn
+  const claudeMessages = messages.map(m => ({ role: m.role, content: m.content }))
+  if (attachment) {
+    const lastUserIdx = claudeMessages.map(m => m.role).lastIndexOf('user')
+    if (lastUserIdx !== -1) {
+      const textPart = claudeMessages[lastUserIdx].content
+      if (attachment.kind === 'image') {
+        claudeMessages[lastUserIdx].content = [
+          { type: 'text', text: textPart || 'Please review the attached document/image and explain it under Uzbek law.' },
+          { type: 'image', source: { type: 'base64', media_type: attachment.mediaType, data: attachment.data } },
+        ]
+      } else if (attachment.kind === 'text') {
+        claudeMessages[lastUserIdx].content = `${textPart || 'Please review this document under Uzbek law.'}\n\n--- ATTACHED DOCUMENT TEXT ---\n${attachment.text.slice(0, 12000)}`
+      }
+    }
+  }
+
   const stream = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1500,
     system: systemPrompt,
-    messages: messages.map(m => ({ role: m.role, content: m.content })),
+    messages: claudeMessages,
     stream: true,
   })
 

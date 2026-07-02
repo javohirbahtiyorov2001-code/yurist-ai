@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import ReactMarkdown from 'react-markdown'
-import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles, ExternalLink } from 'lucide-react'
+import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles, ExternalLink, Paperclip, X, FileText } from 'lucide-react'
 
 const SITUATIONS = [
   { emoji: '💼', label: 'Ish joyi muammosi', desc: "Maosh berilmadi yoki huquqlar buzildi", color: '#7c6dff',
@@ -39,8 +39,23 @@ export default function Chat() {
   const [streaming, setStreaming] = useState(false)
   const [streamText, setStreamText] = useState('')
   const [error, setError] = useState('')
+  const [file, setFile] = useState(null)
+  const [filePreview, setFilePreview] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const fileInputRef = useRef(null)
+
+  const MAX_FILE = 10 * 1024 * 1024
+  const pickFile = (f) => {
+    if (!f) return
+    if (f.size > MAX_FILE) { setError('File too large (max 10MB)'); return }
+    const ok = f.type.startsWith('image/') || f.type === 'application/pdf' || f.type.startsWith('text/')
+    if (!ok) { setError('Attach an image (JPG/PNG) or a PDF'); return }
+    setError('')
+    setFile(f)
+    setFilePreview(f.type.startsWith('image/') ? URL.createObjectURL(f) : null)
+  }
+  const clearFile = () => { if (filePreview) URL.revokeObjectURL(filePreview); setFile(null); setFilePreview(null); if (fileInputRef.current) fileInputRef.current.value = '' }
 
   useEffect(() => { api.chat.list().then(setConversations).catch(() => {}) }, [])
   useEffect(() => {
@@ -56,22 +71,25 @@ export default function Chat() {
   }
 
   const sendMessage = async () => {
-    if (!input.trim() || streaming) return
+    if ((!input.trim() && !file) || streaming) return
+    const sentFile = file
     let convId = id
     if (!convId) {
-      const conv = await api.chat.create(input.slice(0, 60))
+      const conv = await api.chat.create((input || sentFile?.name || 'New conversation').slice(0, 60))
       setConversations(c => [conv, ...c])
       convId = conv.id
       navigate(`/app/chat/${conv.id}`, { replace: true })
     }
-    const userMsg = { id: Date.now(), role: 'user', content: input }
+    const userMsg = { id: Date.now(), role: 'user', content: (input || '') + (sentFile ? `\n\n📎 ${sentFile.name}` : '') }
     setMessages(m => [...m, userMsg])
+    const sentInput = input
     setInput('')
+    clearFile()
     if (inputRef.current) { inputRef.current.style.height = 'auto' }
     setStreaming(true); setStreamText(''); setError('')
 
     try {
-      const res = await api.chat.sendStream(convId, input, jurisdiction)
+      const res = await api.chat.sendStream(convId, sentInput, jurisdiction, sentFile)
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = '', fullText = '', citations = []
@@ -310,34 +328,65 @@ export default function Chat() {
         {/* Input area */}
         <div style={{ padding: '14px 20px 18px', borderTop: '1px solid var(--border)', background: 'rgba(6,6,11,0.8)', backdropFilter: 'blur(12px)' }}>
           <div style={{ maxWidth: 740, margin: '0 auto' }}>
+            {/* Attachment preview */}
+            {file && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, padding: '8px 10px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 12, width: 'fit-content', maxWidth: '100%' }}>
+                {filePreview ? (
+                  <img src={filePreview} alt="preview" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <FileText size={18} color="var(--accent2)" />
+                  </div>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>{file.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)' }}>{(file.size / 1024).toFixed(0)} KB · {file.type.startsWith('image/') ? 'Image' : 'Document'}</div>
+                </div>
+                <button onClick={clearFile} style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--bg3)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Remove">
+                  <X size={12} color="var(--text2)" />
+                </button>
+              </div>
+            )}
             <div style={{
               display: 'flex', gap: 10, alignItems: 'flex-end',
               background: 'var(--bg2)', border: '1px solid var(--border2)',
-              borderRadius: 16, padding: '10px 10px 10px 16px',
+              borderRadius: 16, padding: '10px 10px 10px 12px',
               transition: 'border-color 0.15s, box-shadow 0.15s',
             }}
             onFocusCapture={e => { e.currentTarget.style.borderColor = 'rgba(124,109,255,0.4)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,109,255,0.08)' }}
             onBlurCapture={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.boxShadow = 'none' }}>
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf,text/plain" style={{ display: 'none' }}
+                onChange={e => pickFile(e.target.files?.[0])} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={streaming} title="Attach an image or PDF"
+                style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: 'transparent',
+                  border: 'none', cursor: streaming ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!streaming) e.currentTarget.style.background = 'var(--bg3)' }}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <Paperclip size={17} color="var(--text3)" />
+              </button>
               <textarea ref={inputRef} value={input} onChange={handleInput} onKeyDown={handleKey}
-                placeholder="Ask a legal question in Uzbek, Russian, or English..." rows={1}
+                placeholder="Ask a legal question, or attach a document/photo..." rows={1}
                 style={{
                   flex: 1, resize: 'none', background: 'transparent', border: 'none',
                   color: 'var(--text)', fontSize: 14, outline: 'none',
                   minHeight: 24, maxHeight: 200, overflow: 'auto', lineHeight: 1.6,
                   fontFamily: 'inherit',
                 }} />
-              <button onClick={sendMessage} disabled={!input.trim() || streaming}
+              <button onClick={sendMessage} disabled={(!input.trim() && !file) || streaming}
                 style={{
                   width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                  background: input.trim() && !streaming
+                  background: (input.trim() || file) && !streaming
                     ? 'linear-gradient(135deg, var(--accent), #9b6dff)'
                     : 'var(--bg3)',
-                  border: 'none', cursor: input.trim() && !streaming ? 'pointer' : 'default',
+                  border: 'none', cursor: (input.trim() || file) && !streaming ? 'pointer' : 'default',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s',
-                  boxShadow: input.trim() && !streaming ? '0 2px 12px rgba(124,109,255,0.4)' : 'none',
+                  boxShadow: (input.trim() || file) && !streaming ? '0 2px 12px rgba(124,109,255,0.4)' : 'none',
                 }}>
-                <Send size={15} color={input.trim() && !streaming ? '#fff' : 'var(--text3)'} />
+                <Send size={15} color={(input.trim() || file) && !streaming ? '#fff' : 'var(--text3)'} />
               </button>
             </div>
             <p style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginTop: 8 }}>

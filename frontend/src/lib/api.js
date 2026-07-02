@@ -30,12 +30,22 @@ export const api = {
     list: () => req('/chat/conversations'),
     create: (title) => req('/chat/conversations', { method: 'POST', body: { title } }),
     messages: (id) => req(`/chat/conversations/${id}/messages`),
-    sendStream: (id, content, jurisdiction) =>
-      fetch(`${BASE}/chat/conversations/${id}/messages`, {
+    sendStream: (id, content, jurisdiction, file) => {
+      const url = `${BASE}/chat/conversations/${id}/messages`
+      if (file) {
+        const fd = new FormData()
+        fd.append('content', content || '')
+        fd.append('jurisdiction', jurisdiction)
+        fd.append('file', file)
+        // No Content-Type header — browser sets multipart boundary automatically
+        return fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd })
+      }
+      return fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ content, jurisdiction }),
-      }),
+      })
+    },
   },
   contracts: {
     list: () => req('/contracts'),

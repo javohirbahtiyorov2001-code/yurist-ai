@@ -1,9 +1,13 @@
 import { Router } from 'express'
+import multer from 'multer'
 import pool from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { legalChat } from '../services/claude.js'
+import pdf from 'pdf-parse/lib/pdf-parse.js'
 
 const router = Router()
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
+const ALLOWED_IMAGE = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 const PLAN_LIMITS = { free: 3, pro: Infinity, entity: Infinity }
 
@@ -34,13 +38,30 @@ router.get('/conversations/:id/messages', requireAuth, async (req, res) => {
   res.json(rows)
 })
 
-router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
+router.post('/conversations/:id/messages', requireAuth, upload.single('file'), async (req, res) => {
   const { content } = req.body
   const jurisdiction = 'UZ' // Uzbekistan-only for now; other regions coming soon
-  if (!content?.trim()) return res.status(400).json({ error: 'Message required' })
+  if (!content?.trim() && !req.file) return res.status(400).json({ error: 'Message or attachment required' })
 
   const { rows: conv } = await pool.query('SELECT id FROM conversations WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id])
   if (!conv.length) return res.status(404).json({ error: 'Not found' })
+
+  // Build attachment for Claude (image → vision, PDF → extracted text)
+  let attachment = null
+  let attachmentNote = ''
+  if (req.file) {
+    if (ALLOWED_IMAGE.includes(req.file.mimetype)) {
+      attachment = { kind: 'image', mediaType: req.file.mimetype, data: req.file.buffer.toString('base64') }
+    } else if (req.file.mimetype === 'application/pdf') {
+      const data = await pdf(req.file.buffer)
+      attachment = { kind: 'text', text: data.text }
+    } else if (req.file.mimetype.startsWith('text/')) {
+      attachment = { kind: 'text', text: req.file.buffer.toString('utf8') }
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type. Attach an image (JPG/PNG) or a PDF.' })
+    }
+    attachmentNote = `\n\n📎 ${req.file.originalname}`
+  }
 
   const { rows: userRows } = await pool.query('SELECT plan, questions_used FROM users WHERE id = $1', [req.user.id])
   const user = userRows[0]
@@ -49,7 +70,7 @@ router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
 
   await pool.query(
     'INSERT INTO messages (conversation_id, role, content) VALUES ($1, $2, $3)',
-    [req.params.id, 'user', content]
+    [req.params.id, 'user', (content || '') + attachmentNote]
   )
 
   const { rows: history } = await pool.query(
@@ -65,7 +86,7 @@ router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
   let citations = []
 
   try {
-    const { stream, citations: foundCitations } = await legalChat(history, jurisdiction)
+    const { stream, citations: foundCitations } = await legalChat(history, jurisdiction, attachment)
     citations = foundCitations
 
     for await (const event of stream) {
