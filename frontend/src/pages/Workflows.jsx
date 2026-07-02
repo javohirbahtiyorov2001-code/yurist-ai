@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../lib/api.js'
 import { getLang } from '../lib/lang.js'
+import { downloadWord, printPDF } from '../lib/export.js'
 import ReactMarkdown from 'react-markdown'
-import { Workflow as WorkflowIcon, Sparkles, ChevronRight, ArrowLeft, Upload, X, FileText, CheckCircle2, BookOpen, ExternalLink } from 'lucide-react'
+import { Workflow as WorkflowIcon, Sparkles, ChevronRight, ArrowLeft, Upload, X, FileText, CheckCircle2, BookOpen, ExternalLink, Printer } from 'lucide-react'
 
 export default function Workflows() {
   const [templates, setTemplates] = useState([])
@@ -13,6 +14,10 @@ export default function Workflows() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const fileRef = useRef(null)
+  const reportRef = useRef(null)
+
+  const exportWord = () => reportRef.current && active && downloadWord(active.title, reportRef.current.innerHTML)
+  const exportPDF = () => reportRef.current && active && printPDF(active.title, reportRef.current.innerHTML)
 
   useEffect(() => { api.workflows.list().then(setTemplates).catch(e => setError(e.message)) }, [])
 
@@ -153,6 +158,11 @@ export default function Workflows() {
       {/* Result — stepped report */}
       {result && (
         <div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+            <button onClick={exportWord} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border2)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}><FileText size={14} /> Word'ga yuklash</button>
+            <button onClick={exportPDF} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border2)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}><Printer size={14} /> PDF</button>
+          </div>
+          <div ref={reportRef}>
           {result.steps.map((step, i) => (
             <div key={i} style={{ marginBottom: 18, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
@@ -179,6 +189,7 @@ export default function Workflows() {
             </div>
           )}
 
+          </div>
           <button onClick={() => { setResult(null) }} style={{ padding: '9px 18px', borderRadius: 10, border: '1px solid var(--border2)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
             ↻ Qayta ishga tushirish
           </button>

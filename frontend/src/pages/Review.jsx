@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
 import { api } from '../lib/api.js'
 import { getLang } from '../lib/lang.js'
-import { Table2, Upload, X, FileText, Image as ImageIcon, Sparkles, AlertTriangle } from 'lucide-react'
+import { downloadWord, printPDF } from '../lib/export.js'
+import { Table2, Upload, X, FileText, Image as ImageIcon, Sparkles, AlertTriangle, Printer } from 'lucide-react'
 
 const DEFAULT_TASK = "Har bir hujjatni ko'rib chiqing va barcha faktik masalalarni jadval ko'rinishida keltiring. Birinchi ustunda masalalar mantiqiy/xronologik tartibda, qolgan ustunlar har bir hujjat bo'yicha. Ziddiyatlarni aniq belgilang."
 
@@ -19,6 +20,11 @@ export default function Review() {
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef(null)
+  const resultRef = useRef(null)
+
+  const exportTitle = () => result?.title || 'Document Review'
+  const exportWord = () => resultRef.current && downloadWord(exportTitle(), resultRef.current.innerHTML)
+  const exportPDF = () => resultRef.current && printPDF(exportTitle(), resultRef.current.innerHTML)
 
   const addFiles = (list) => {
     const incoming = Array.from(list || [])
@@ -136,7 +142,12 @@ export default function Review() {
       {result && (
         <div style={{ marginTop: 28 }}>
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{result.title || 'Comparison'}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, flex: 1 }}>{result.title || 'Comparison'}</h2>
+            <button onClick={exportWord} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: '1px solid var(--border2)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><FileText size={13} /> Word</button>
+            <button onClick={exportPDF} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: '1px solid var(--border2)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><Printer size={13} /> PDF</button>
+          </div>
+          <div ref={resultRef}>
           {result.summary && <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 16 }}>{result.summary}</p>}
 
           {/* Table */}
@@ -178,6 +189,7 @@ export default function Review() {
               </ul>
             </div>
           )}
+          </div>
         </div>
       )}
     </div>

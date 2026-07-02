@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api.js'
-import { FileEdit, Download, ChevronRight } from 'lucide-react'
+import { downloadWord, printPDF, textToHtml } from '../lib/export.js'
+import { FileEdit, Download, ChevronRight, FileText, Printer } from 'lucide-react'
 
 const FIELDS = {
   nda: [
@@ -79,13 +80,8 @@ export default function Documents() {
     }
   }
 
-  const download = () => {
-    if (!result) return
-    const blob = new Blob([result.content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `${result.title}.txt`; a.click()
-    URL.revokeObjectURL(url)
-  }
+  const exportWord = () => result && downloadWord(result.title, textToHtml(result.content))
+  const exportPDF = () => result && printPDF(result.title, textToHtml(result.content))
 
   const fields = type ? FIELDS[type] || [] : []
   const canDraft = type && fields.every(f => params[f.key]?.trim())
@@ -179,7 +175,8 @@ export default function Documents() {
             <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => setResult(null)}>← New document</button>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{result.title}</span>
-              <button className="btn btn-ghost btn-sm" onClick={download}><Download size={13} /> Download</button>
+              <button className="btn btn-ghost btn-sm" onClick={exportWord}><FileText size={13} /> Word</button>
+              <button className="btn btn-ghost btn-sm" onClick={exportPDF}><Printer size={13} /> PDF</button>
             </div>
             <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: 28, fontFamily: 'monospace', fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: 'var(--text)' }}>
               {result.content}
