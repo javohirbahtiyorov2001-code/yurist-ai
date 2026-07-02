@@ -9,8 +9,8 @@ router.get('/', requireAuth, async (req, res) => {
   if (!req.user.organization_id) return res.json([])
   const { kind } = req.query
   const params = [req.user.organization_id]
-  let where = 'organization_id = $1'
-  if (kind) { params.push(kind); where += ` AND kind = $${params.length}` }
+  let where = 'wi.organization_id = $1'
+  if (kind) { params.push(kind); where += ` AND wi.kind = $${params.length}` }
   const { rows } = await pool.query(
     `SELECT wi.id, wi.kind, wi.title, wi.created_at, u.full_name AS author
      FROM workspace_items wi LEFT JOIN users u ON u.id = wi.user_id
