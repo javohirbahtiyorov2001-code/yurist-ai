@@ -60,7 +60,7 @@ export default function Workflows() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent2)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}>
               <div style={{ fontSize: 28, marginBottom: 10 }}>{wf.icon}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{wf.title}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3, color: 'var(--text)' }}>{wf.title}</div>
               <div style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{wf.subtitle}</div>
               <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55, marginBottom: 12 }}>{wf.description}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>

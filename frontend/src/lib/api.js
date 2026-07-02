@@ -1,4 +1,6 @@
-const BASE = '/api'
+// Call the backend directly (not via the Netlify /api proxy) — the proxy times out
+// around ~26s, which breaks long multi-step requests like Workflows (3 sequential AI calls).
+const BASE = 'https://yurist-ai-production.up.railway.app/api'
 
 function getToken() { return localStorage.getItem('lexcis_token') }
 
