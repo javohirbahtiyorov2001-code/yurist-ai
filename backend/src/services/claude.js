@@ -122,6 +122,58 @@ ${text.slice(0, 8000)}`
   return jsonMatch ? JSON.parse(jsonMatch[0]) : { error: 'Could not parse analysis', raw }
 }
 
+// Multi-document tabular review: compare N documents into a structured comparison table
+export async function tabularReview(documents, task, jurisdiction = 'UZ') {
+  const names = documents.map(d => d.name)
+
+  const instruction = `You are a senior ${jurisdiction} legal analyst. You are given ${documents.length} documents. Compare them and build a structured comparison table.
+
+USER'S TASK: ${task || 'Identify every factual issue across the documents. First column = the factual issue in logical/chronological order; one remaining column per document.'}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "title": "short title of the review",
+  "documents": ${JSON.stringify(names)},
+  "rows": [
+    { "issue": "the factual issue / topic / clause", "cells": { ${names.map(n => `"${n}": "what this document says about it"`).join(', ')} } }
+  ],
+  "conflicts": ["describe any contradictions between documents"],
+  "summary": "2-3 sentence overall summary"
+}
+
+RULES:
+- Use EXACTLY these document names as keys: ${JSON.stringify(names)}
+- If a document does not address an issue, set its cell to "Muhokama qilinmagan" (or "Not discussed" if the documents are in English).
+- Keep cell values concise (1-3 sentences). Order rows logically or chronologically.
+- Write cell values in the SAME language as the documents.
+- Return ONLY the JSON, no prose before or after.`
+
+  const content = [{ type: 'text', text: instruction }]
+  for (const doc of documents) {
+    if (doc.kind === 'image') {
+      content.push({ type: 'text', text: `\n\n=== DOCUMENT: ${doc.name} (image) ===` })
+      content.push({ type: 'image', source: { type: 'base64', media_type: doc.mediaType, data: doc.data } })
+    } else {
+      content.push({ type: 'text', text: `\n\n=== DOCUMENT: ${doc.name} ===\n${(doc.text || '').slice(0, 15000)}` })
+    }
+  }
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4000,
+    messages: [{ role: 'user', content }],
+  })
+
+  const raw = response.content[0].text
+  const jsonMatch = raw.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) return { error: 'Could not parse review', raw }
+  try {
+    return JSON.parse(jsonMatch[0])
+  } catch {
+    return { error: 'Could not parse review', raw }
+  }
+}
+
 export async function draftDocument(type, parameters, jurisdiction = 'UZ') {
   const templates = {
     nda: 'Non-Disclosure Agreement (NDA)',

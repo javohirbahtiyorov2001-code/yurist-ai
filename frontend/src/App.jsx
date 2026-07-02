@@ -6,6 +6,7 @@ import Register from './pages/Register.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Chat from './pages/Chat.jsx'
 import Contracts from './pages/Contracts.jsx'
+import Review from './pages/Review.jsx'
 import Documents from './pages/Documents.jsx'
 import Layout from './components/Layout.jsx'
 
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="chat" element={<Chat />} />
             <Route path="chat/:id" element={<Chat />} />
             <Route path="contracts" element={<Contracts />} />
+            <Route path="review" element={<Review />} />
             <Route path="documents" element={<Documents />} />
           </Route>
         </Routes>

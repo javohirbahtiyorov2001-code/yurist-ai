@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.js'
 import chatRoutes from './routes/chat.js'
 import contractRoutes from './routes/contracts.js'
 import documentRoutes from './routes/documents.js'
+import reviewRoutes from './routes/review.js'
 
 dotenv.config()
 
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/contracts', contractRoutes)
 app.use('/api/documents', documentRoutes)
+app.use('/api/review', reviewRoutes)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'Yurist AI API' }))
 

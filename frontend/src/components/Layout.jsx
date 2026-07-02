@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth.jsx'
-import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles } from 'lucide-react'
+import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2 } from 'lucide-react'
 
 function LogoHex({ size = 28 }) {
   return (
@@ -34,6 +34,7 @@ export default function Layout() {
     { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/app/chat', label: 'Legal Q&A', icon: MessageSquare },
     { to: '/app/contracts', label: 'Contracts', icon: FileText },
+    { to: '/app/review', label: 'Document Review', icon: Table2 },
     { to: '/app/documents', label: 'Documents', icon: FileEdit },
   ]
 

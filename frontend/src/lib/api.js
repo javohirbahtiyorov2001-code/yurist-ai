@@ -54,6 +54,9 @@ export const api = {
     analyze: (formData) => req('/contracts/analyze', { method: 'POST', body: formData }),
     get: (id) => req(`/contracts/${id}`),
   },
+  review: {
+    run: (formData) => req('/review', { method: 'POST', body: formData }),
+  },
   documents: {
     types: () => req('/documents/types'),
     list: () => req('/documents'),
