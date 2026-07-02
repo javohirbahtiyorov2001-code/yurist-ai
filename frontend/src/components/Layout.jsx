@@ -1,6 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth.jsx'
-import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2 } from 'lucide-react'
+import { useState } from 'react'
+import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2, Workflow, Globe } from 'lucide-react'
+import { getLang, setLang, LANGS } from '../lib/lang.js'
 
 function LogoHex({ size = 28 }) {
   return (
@@ -29,12 +31,14 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const handleLogout = () => { logout(); navigate('/') }
+  const [lang, setLangState] = useState(getLang())
 
   const navItems = [
     { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/app/chat', label: 'Legal Q&A', icon: MessageSquare },
     { to: '/app/contracts', label: 'Contracts', icon: FileText },
     { to: '/app/review', label: 'Document Review', icon: Table2 },
+    { to: '/app/workflows', label: 'Workflows', icon: Workflow },
     { to: '/app/documents', label: 'Documents', icon: FileEdit },
   ]
 
@@ -101,6 +105,16 @@ export default function Layout() {
             </div>
           )}
         </nav>
+
+        {/* Language selector */}
+        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Globe size={14} color="var(--text3)" style={{ flexShrink: 0 }} />
+          <select value={lang} onChange={e => { setLang(e.target.value); setLangState(e.target.value) }}
+            style={{ flex: 1, background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', padding: '6px 8px', borderRadius: 8, fontSize: 12, outline: 'none', cursor: 'pointer' }}
+            title="Javob tili / Response language">
+            {LANGS.map(l => <option key={l.value} value={l.value}>{l.flag} {l.label}</option>)}
+          </select>
+        </div>
 
         {/* User */}
         <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)' }}>

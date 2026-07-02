@@ -64,7 +64,7 @@ router.get('/conversations/:id/messages', requireAuth, async (req, res) => {
 })
 
 router.post('/conversations/:id/messages', requireAuth, upload.single('file'), async (req, res) => {
-  const { content } = req.body
+  const { content, lang } = req.body
   const jurisdiction = 'UZ' // Uzbekistan-only for now; other regions coming soon
   if (!content?.trim() && !req.file) return res.status(400).json({ error: 'Message or attachment required' })
 
@@ -111,7 +111,7 @@ router.post('/conversations/:id/messages', requireAuth, upload.single('file'), a
   let citations = []
 
   try {
-    const { stream, citations: foundCitations } = await legalChat(history, jurisdiction, attachment)
+    const { stream, citations: foundCitations } = await legalChat(history, jurisdiction, attachment, lang)
     citations = foundCitations
 
     for await (const event of stream) {

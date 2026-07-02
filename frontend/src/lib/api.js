@@ -32,12 +32,13 @@ export const api = {
     update: (id, data) => req(`/chat/conversations/${id}`, { method: 'PATCH', body: data }),
     remove: (id) => req(`/chat/conversations/${id}`, { method: 'DELETE' }),
     messages: (id) => req(`/chat/conversations/${id}/messages`),
-    sendStream: (id, content, jurisdiction, file) => {
+    sendStream: (id, content, jurisdiction, file, lang) => {
       const url = `${BASE}/chat/conversations/${id}/messages`
       if (file) {
         const fd = new FormData()
         fd.append('content', content || '')
         fd.append('jurisdiction', jurisdiction)
+        if (lang) fd.append('lang', lang)
         fd.append('file', file)
         // No Content-Type header — browser sets multipart boundary automatically
         return fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd })
@@ -45,7 +46,7 @@ export const api = {
       return fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ content, jurisdiction }),
+        body: JSON.stringify({ content, jurisdiction, lang }),
       })
     },
   },
@@ -56,6 +57,10 @@ export const api = {
   },
   review: {
     run: (formData) => req('/review', { method: 'POST', body: formData }),
+  },
+  workflows: {
+    list: () => req('/workflows'),
+    run: (formData) => req('/workflows/run', { method: 'POST', body: formData }),
   },
   documents: {
     types: () => req('/documents/types'),

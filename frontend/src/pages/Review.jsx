@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { api } from '../lib/api.js'
+import { getLang } from '../lib/lang.js'
 import { Table2, Upload, X, FileText, Image as ImageIcon, Sparkles, AlertTriangle } from 'lucide-react'
 
 const DEFAULT_TASK = "Har bir hujjatni ko'rib chiqing va barcha faktik masalalarni jadval ko'rinishida keltiring. Birinchi ustunda masalalar mantiqiy/xronologik tartibda, qolgan ustunlar har bir hujjat bo'yicha. Ziddiyatlarni aniq belgilang."
@@ -38,6 +39,7 @@ export default function Review() {
     try {
       const fd = new FormData()
       fd.append('task', task)
+      fd.append('lang', getLang())
       files.forEach(f => fd.append('files', f))
       const res = await api.review.run(fd)
       setResult(res)

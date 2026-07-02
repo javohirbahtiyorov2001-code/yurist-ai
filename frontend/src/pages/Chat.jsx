@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import { getLang, setLang, LANGS } from '../lib/lang.js'
 import ReactMarkdown from 'react-markdown'
 import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles, ExternalLink, Paperclip, X, FileText, MoreVertical, Pin, PinOff, Pencil, Trash2 } from 'lucide-react'
 
@@ -35,7 +36,8 @@ export default function Chat() {
   const [conversations, setConversations] = useState([])
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [jurisdiction, setJurisdiction] = useState('UZ')
+  const [jurisdiction] = useState('UZ')
+  const [lang, setLangState] = useState(getLang())
   const [streaming, setStreaming] = useState(false)
   const [streamText, setStreamText] = useState('')
   const [error, setError] = useState('')
@@ -116,7 +118,7 @@ export default function Chat() {
     setStreaming(true); setStreamText(''); setError('')
 
     try {
-      const res = await api.chat.sendStream(convId, sentInput, jurisdiction, sentFile)
+      const res = await api.chat.sendStream(convId, sentInput, jurisdiction, sentFile, lang)
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = '', fullText = '', citations = []
@@ -250,10 +252,10 @@ export default function Chat() {
             <span style={{ fontSize: 14, fontWeight: 600 }}>Legal Q&A</span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--text3)' }}>Jurisdiction:</span>
-            <select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)}
+            <span style={{ fontSize: 11, color: 'var(--text3)' }}>Javob tili:</span>
+            <select value={lang} onChange={e => { setLang(e.target.value); setLangState(e.target.value) }}
               style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', padding: '5px 10px', borderRadius: 8, fontSize: 12, outline: 'none', cursor: 'pointer' }}>
-              {JURISDICTIONS.map(j => <option key={j.value} value={j.value} disabled={j.disabled}>{j.label}</option>)}
+              {LANGS.map(l => <option key={l.value} value={l.value}>{l.flag} {l.label}</option>)}
             </select>
           </div>
         </div>

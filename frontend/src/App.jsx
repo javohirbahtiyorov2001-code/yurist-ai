@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Chat from './pages/Chat.jsx'
 import Contracts from './pages/Contracts.jsx'
 import Review from './pages/Review.jsx'
+import Workflows from './pages/Workflows.jsx'
 import Documents from './pages/Documents.jsx'
 import Layout from './components/Layout.jsx'
 
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="chat/:id" element={<Chat />} />
             <Route path="contracts" element={<Contracts />} />
             <Route path="review" element={<Review />} />
+            <Route path="workflows" element={<Workflows />} />
             <Route path="documents" element={<Documents />} />
           </Route>
         </Routes>

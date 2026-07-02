@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS law_articles (
   article_number VARCHAR(50) NOT NULL,
   title TEXT,
   content TEXT NOT NULL,
+  content_uz TEXT,
+  content_ru TEXT,
   tags TEXT[],
   effective_date DATE,
   source_url TEXT,

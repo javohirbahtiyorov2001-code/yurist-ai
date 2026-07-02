@@ -37,6 +37,7 @@ router.post('/', requireAuth, upload.array('files', 12), async (req, res) => {
 
   const jurisdiction = 'UZ'
   const task = req.body.task || ''
+  const lang = req.body.lang || null
 
   try {
     const documents = []
@@ -46,7 +47,7 @@ router.post('/', requireAuth, upload.array('files', 12), async (req, res) => {
       documents.push(doc)
     }
 
-    const result = await tabularReview(documents, task, jurisdiction)
+    const result = await tabularReview(documents, task, jurisdiction, lang)
     if (result.error) return res.status(422).json(result)
     res.json(result)
   } catch (err) {

@@ -3,27 +3,35 @@ import pool from '../db/pool.js'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-async function searchLawArticles(query, jurisdiction = 'UZ') {
+async function searchLawArticles(query, jurisdiction = 'UZ', lang = 'uz') {
   const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3)
   if (!keywords.length) return []
 
-  const conditions = keywords.map((_, i) => `(content ILIKE $${i + 1} OR title ILIKE $${i + 1} OR $${i + 1} = ANY(tags::text[]))`).join(' OR ')
+  // Search across all language columns so UZ/RU/EN queries all match
+  const conditions = keywords.map((_, i) =>
+    `(content ILIKE $${i + 1} OR content_uz ILIKE $${i + 1} OR content_ru ILIKE $${i + 1} OR title ILIKE $${i + 1} OR $${i + 1} = ANY(tags::text[]))`
+  ).join(' OR ')
   const params = keywords.map(k => `%${k}%`)
 
+  // Return the article text in the user's language, falling back to English
+  const contentCol = { uz: 'COALESCE(content_uz, content)', ru: 'COALESCE(content_ru, content)', en: 'content' }[lang] || 'COALESCE(content_uz, content)'
+
   const { rows } = await pool.query(
-    `SELECT code_name, article_number, title, content, source_url, source_name FROM law_articles
-     WHERE (jurisdiction = $${params.length + 1} OR jurisdiction = 'UZ') AND (${conditions})
+    `SELECT code_name, article_number, title, ${contentCol} AS content, source_url, source_name FROM law_articles
+     WHERE jurisdiction = 'UZ' AND (${conditions})
      LIMIT 5`,
-    [...params, jurisdiction]
+    params
   )
   return rows
 }
 
-export async function legalChat(messages, jurisdiction = 'UZ', attachment = null) {
+const LANG_NAME = { uz: "o'zbek (lotin)", ru: 'русский', en: 'English' }
+
+export async function legalChat(messages, jurisdiction = 'UZ', attachment = null, lang = null) {
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
   // Include extracted PDF text in retrieval keywords so law search still works for documents
   const retrievalQuery = attachment?.kind === 'text' ? `${lastUserMessage} ${attachment.text}`.slice(0, 2000) : lastUserMessage
-  const articles = await searchLawArticles(retrievalQuery, jurisdiction)
+  const articles = await searchLawArticles(retrievalQuery, jurisdiction, lang || 'uz')
 
   const hasArticles = articles.length > 0
 
@@ -38,7 +46,7 @@ export async function legalChat(messages, jurisdiction = 'UZ', attachment = null
 YOUR STYLE:
 - Write like a smart, trusted friend who happens to know the law — not like a formal lawyer
 - Use simple language. Avoid legal jargon. If you must use a legal term, explain it in brackets.
-- Answer in the same language the user writes in (Uzbek, Russian, or English)
+- ${lang && LANG_NAME[lang] ? `ALWAYS respond in ${LANG_NAME[lang]}, regardless of the language the user writes in.` : 'Answer in the same language the user writes in (Uzbek, Russian, or English)'}
 - Be warm, direct, and reassuring — people come to you scared and confused
 
 SCOPE — UZBEKISTAN ONLY:
@@ -123,8 +131,9 @@ ${text.slice(0, 8000)}`
 }
 
 // Multi-document tabular review: compare N documents into a structured comparison table
-export async function tabularReview(documents, task, jurisdiction = 'UZ') {
+export async function tabularReview(documents, task, jurisdiction = 'UZ', lang = null) {
   const names = documents.map(d => d.name)
+  const langDirective = lang && LANG_NAME[lang] ? `Write ALL cell values and text in ${LANG_NAME[lang]}.` : 'Write cell values in the SAME language as the documents.'
 
   const instruction = `You are a senior ${jurisdiction} legal analyst. You are given ${documents.length} documents. Compare them and build a structured comparison table.
 
@@ -145,7 +154,7 @@ RULES:
 - Use EXACTLY these document names as keys: ${JSON.stringify(names)}
 - If a document does not address an issue, set its cell to "Muhokama qilinmagan" (or "Not discussed" if the documents are in English).
 - Keep cell values concise (1-3 sentences). Order rows logically or chronologically.
-- Write cell values in the SAME language as the documents.
+- ${langDirective}
 - Return ONLY the JSON, no prose before or after.`
 
   const content = [{ type: 'text', text: instruction }]
