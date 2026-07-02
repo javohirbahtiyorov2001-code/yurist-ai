@@ -3,6 +3,7 @@ import multer from 'multer'
 import pool from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { WORKFLOWS, runWorkflow } from '../services/workflows.js'
+import { saveWorkspaceItem } from '../services/workspace.js'
 import pdf from 'pdf-parse/lib/pdf-parse.js'
 
 const router = Router()
@@ -55,6 +56,7 @@ router.post('/run', requireAuth, upload.array('files', 8), async (req, res) => {
 
   try {
     const result = await runWorkflow(workflowKey, inputs, fileTexts, lang)
+    await saveWorkspaceItem(req.user.organization_id, req.user.id, 'workflow', result.workflow?.title || 'Workflow', result)
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })

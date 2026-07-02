@@ -64,6 +64,25 @@ export const api = {
     list: () => req('/workflows'),
     run: (formData) => req('/workflows/run', { method: 'POST', body: formData }),
   },
+  org: {
+    get: () => req('/org'),
+    rename: (name) => req('/org', { method: 'PATCH', body: { name } }),
+    regenerateInvite: () => req('/org/regenerate-invite', { method: 'POST' }),
+    join: (code) => req('/org/join', { method: 'POST', body: { code } }),
+  },
+  workspace: {
+    list: (kind) => req(`/workspace${kind ? `?kind=${kind}` : ''}`),
+    get: (id) => req(`/workspace/${id}`),
+    remove: (id) => req(`/workspace/${id}`, { method: 'DELETE' }),
+  },
+  templates: {
+    list: () => req('/templates'),
+    create: (data) => req('/templates', { method: 'POST', body: data }),
+    get: (id) => req(`/templates/${id}`),
+    remove: (id) => req(`/templates/${id}`, { method: 'DELETE' }),
+    draft: (id, instructions, lang) => req(`/templates/${id}/draft`, { method: 'POST', body: { instructions, lang } }),
+    compare: (id, formData) => req(`/templates/${id}/compare`, { method: 'POST', body: formData }),
+  },
   documents: {
     types: () => req('/documents/types'),
     list: () => req('/documents'),

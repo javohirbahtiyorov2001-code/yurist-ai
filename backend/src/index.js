@@ -7,6 +7,9 @@ import contractRoutes from './routes/contracts.js'
 import documentRoutes from './routes/documents.js'
 import reviewRoutes from './routes/review.js'
 import workflowRoutes from './routes/workflows.js'
+import orgRoutes from './routes/org.js'
+import workspaceRoutes from './routes/workspace.js'
+import templateRoutes from './routes/templates.js'
 
 dotenv.config()
 
@@ -33,6 +36,9 @@ app.use('/api/contracts', contractRoutes)
 app.use('/api/documents', documentRoutes)
 app.use('/api/review', reviewRoutes)
 app.use('/api/workflows', workflowRoutes)
+app.use('/api/org', orgRoutes)
+app.use('/api/workspace', workspaceRoutes)
+app.use('/api/templates', templateRoutes)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'Yurist AI API' }))
 

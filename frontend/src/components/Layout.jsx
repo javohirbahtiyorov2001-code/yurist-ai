@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth.jsx'
 import { useState } from 'react'
-import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2, Workflow, Globe } from 'lucide-react'
+import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2, Workflow, Globe, FolderOpen, Library, Users } from 'lucide-react'
 import { getLang, setLang, LANGS } from '../lib/lang.js'
 
 function LogoHex({ size = 28 }) {
@@ -40,6 +40,9 @@ export default function Layout() {
     { to: '/app/review', label: 'Document Review', icon: Table2 },
     { to: '/app/workflows', label: 'Workflows', icon: Workflow },
     { to: '/app/documents', label: 'Documents', icon: FileEdit },
+    { to: '/app/templates', label: 'Template Library', icon: Library },
+    { to: '/app/workspace', label: 'Workspace', icon: FolderOpen },
+    { to: '/app/team', label: 'Team', icon: Users },
   ]
 
   const initials = user?.full_name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?'

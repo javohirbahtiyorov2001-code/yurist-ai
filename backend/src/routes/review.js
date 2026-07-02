@@ -3,6 +3,7 @@ import multer from 'multer'
 import pool from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { tabularReview } from '../services/claude.js'
+import { saveWorkspaceItem } from '../services/workspace.js'
 import pdf from 'pdf-parse/lib/pdf-parse.js'
 
 const router = Router()
@@ -49,6 +50,7 @@ router.post('/', requireAuth, upload.array('files', 12), async (req, res) => {
 
     const result = await tabularReview(documents, task, jurisdiction, lang)
     if (result.error) return res.status(422).json(result)
+    await saveWorkspaceItem(req.user.organization_id, req.user.id, 'review', result.title || 'Document review', result)
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })

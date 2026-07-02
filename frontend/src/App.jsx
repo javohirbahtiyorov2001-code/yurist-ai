@@ -9,6 +9,9 @@ import Contracts from './pages/Contracts.jsx'
 import Review from './pages/Review.jsx'
 import Workflows from './pages/Workflows.jsx'
 import Documents from './pages/Documents.jsx'
+import Workspace from './pages/Workspace.jsx'
+import Templates from './pages/Templates.jsx'
+import Team from './pages/Team.jsx'
 import Layout from './components/Layout.jsx'
 
 function Protected({ children }) {
@@ -33,6 +36,9 @@ export default function App() {
             <Route path="review" element={<Review />} />
             <Route path="workflows" element={<Workflows />} />
             <Route path="documents" element={<Documents />} />
+            <Route path="workspace" element={<Workspace />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="team" element={<Team />} />
           </Route>
         </Routes>
       </BrowserRouter>

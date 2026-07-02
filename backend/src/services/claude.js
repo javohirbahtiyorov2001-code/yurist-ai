@@ -183,6 +183,55 @@ RULES:
   }
 }
 
+// Draft a new document based on a company's saved template, filling in new details
+export async function draftFromTemplate(templateContent, instructions, lang = 'uz') {
+  const langName = LANG_NAME[lang] || LANG_NAME.uz
+  const prompt = `You are a legal drafter for a company in Uzbekistan. Below is the company's OWN standard template. Produce a new, complete document that follows this template's structure, style, and clauses exactly, but adapted to the new details provided. Keep the company's preferred wording. Respond in ${langName}.
+
+=== COMPANY TEMPLATE ===
+${templateContent.slice(0, 12000)}
+
+=== NEW DETAILS / INSTRUCTIONS ===
+${instructions}
+
+Produce the complete final document now, ready to use. Use clear formatting.`
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6', max_tokens: 3000,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  return response.content[0].text
+}
+
+// Compare an incoming document against the company's standard (playbook review)
+export async function compareToTemplate(templateContent, documentText, lang = 'uz') {
+  const langName = LANG_NAME[lang] || LANG_NAME.uz
+  const prompt = `You are a legal reviewer for a company in Uzbekistan. Compare the INCOMING DOCUMENT against the company's OWN STANDARD. Identify where the incoming document deviates from the company standard, missing protections, and added risks. Respond in ${langName}.
+
+Return ONLY JSON:
+{
+  "verdict": "acceptable | needs_changes | reject",
+  "summary": "2-3 sentence overall assessment",
+  "deviations": [ { "severity": "high|medium|low", "topic": "...", "standard": "what our template says", "incoming": "what this document says", "recommendation": "..." } ],
+  "missing": ["protections in our standard that are absent here"]
+}
+
+=== COMPANY STANDARD ===
+${templateContent.slice(0, 8000)}
+
+=== INCOMING DOCUMENT ===
+${documentText.slice(0, 8000)}`
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6', max_tokens: 2500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const raw = response.content[0].text
+  const m = raw.match(/\{[\s\S]*\}/)
+  if (!m) return { error: 'Could not parse comparison', raw }
+  try { return JSON.parse(m[0]) } catch { return { error: 'Could not parse comparison', raw } }
+}
+
 export async function draftDocument(type, parameters, jurisdiction = 'UZ') {
   const templates = {
     nda: 'Non-Disclosure Agreement (NDA)',

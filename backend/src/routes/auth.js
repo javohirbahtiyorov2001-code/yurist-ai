@@ -11,9 +11,17 @@ router.post('/register', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, 10)
+    // Create an organization for the new user (they become the owner)
+    const inviteCode = Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
+    const orgName = company || `${fullName}'s workspace`
+    const { rows: orgRows } = await pool.query(
+      'INSERT INTO organizations (name, invite_code, plan) VALUES ($1, $2, $3) RETURNING id',
+      [orgName, inviteCode, 'free']
+    )
+    const orgId = orgRows[0].id
     const { rows } = await pool.query(
-      'INSERT INTO users (email, password_hash, full_name, company) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, company, plan',
-      [email, hash, fullName, company || null]
+      "INSERT INTO users (email, password_hash, full_name, company, organization_id, role) VALUES ($1, $2, $3, $4, $5, 'owner') RETURNING id, email, full_name, company, plan, organization_id, role",
+      [email, hash, fullName, company || null, orgId]
     )
     const user = rows[0]
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' })
@@ -35,7 +43,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' })
 
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' })
-    res.json({ token, user: { id: user.id, email: user.email, full_name: user.full_name, company: user.company, plan: user.plan } })
+    res.json({ token, user: { id: user.id, email: user.email, full_name: user.full_name, company: user.company, plan: user.plan, organization_id: user.organization_id, role: user.role } })
   } catch {
     res.status(500).json({ error: 'Server error' })
   }
@@ -47,7 +55,7 @@ router.get('/me', async (req, res) => {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     const { rows } = await pool.query(
-      'SELECT id, email, full_name, company, plan, questions_used FROM users WHERE id = $1', [payload.id]
+      'SELECT id, email, full_name, company, plan, questions_used, organization_id, role FROM users WHERE id = $1', [payload.id]
     )
     res.json(rows[0])
   } catch {

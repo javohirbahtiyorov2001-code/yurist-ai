@@ -2,6 +2,7 @@ import { Router } from 'express'
 import pool from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { draftDocument } from '../services/claude.js'
+import { saveWorkspaceItem } from '../services/workspace.js'
 
 const router = Router()
 
@@ -40,6 +41,7 @@ router.post('/draft', requireAuth, async (req, res) => {
       'INSERT INTO documents (user_id, document_type, title, content, parameters) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [req.user.id, type, title, content, JSON.stringify(parameters)]
     )
+    await saveWorkspaceItem(req.user.organization_id, req.user.id, 'draft', title, { content })
 
     res.json({ id: rows[0].id, title, content })
   } catch (err) {
