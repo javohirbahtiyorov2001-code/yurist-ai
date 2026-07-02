@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import ReactMarkdown from 'react-markdown'
-import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles } from 'lucide-react'
+import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles, ExternalLink } from 'lucide-react'
 
 const SITUATIONS = [
   { emoji: '💼', label: 'Ish joyi muammosi', desc: "Maosh berilmadi yoki huquqlar buzildi", color: '#7c6dff',
@@ -25,8 +25,8 @@ const SITUATIONS = [
 
 const JURISDICTIONS = [
   { value: 'UZ', label: '🇺🇿 Uzbekistan' },
-  { value: 'KZ', label: '🇰🇿 Kazakhstan' },
-  { value: 'AZ', label: '🇦🇿 Azerbaijan' },
+  { value: 'KZ', label: '🇰🇿 Kazakhstan (coming soon)', disabled: true },
+  { value: 'AZ', label: '🇦🇿 Azerbaijan (coming soon)', disabled: true },
 ]
 
 export default function Chat() {
@@ -158,7 +158,7 @@ export default function Chat() {
             <span style={{ fontSize: 11, color: 'var(--text3)' }}>Jurisdiction:</span>
             <select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)}
               style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', padding: '5px 10px', borderRadius: 8, fontSize: 12, outline: 'none', cursor: 'pointer' }}>
-              {JURISDICTIONS.map(j => <option key={j.value} value={j.value}>{j.label}</option>)}
+              {JURISDICTIONS.map(j => <option key={j.value} value={j.value} disabled={j.disabled}>{j.label}</option>)}
             </select>
           </div>
         </div>
@@ -241,11 +241,21 @@ export default function Chat() {
                   </div>
                   {msg.citations?.length > 0 && (
                     <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {msg.citations.map((c, i) => (
-                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '4px 10px', borderRadius: 20, background: 'var(--accent-bg)', color: 'var(--accent2)', border: '1px solid rgba(124,109,255,0.15)', fontWeight: 500 }}>
-                          <BookOpen size={10} /> {c.code} · Art. {c.article}
-                        </span>
-                      ))}
+                      {msg.citations.map((c, i) => {
+                        const chipStyle = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '4px 10px', borderRadius: 20, background: 'var(--accent-bg)', color: 'var(--accent2)', border: '1px solid rgba(124,109,255,0.15)', fontWeight: 500, textDecoration: 'none', cursor: c.sourceUrl ? 'pointer' : 'default', transition: 'all 0.15s' }
+                        return c.sourceUrl ? (
+                          <a key={i} href={c.sourceUrl} target="_blank" rel="noopener noreferrer" title={`Manba: ${c.sourceName || 'lex.uz'}`} style={chipStyle}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,109,255,0.22)'; e.currentTarget.style.borderColor = 'rgba(124,109,255,0.4)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent-bg)'; e.currentTarget.style.borderColor = 'rgba(124,109,255,0.15)' }}>
+                            <BookOpen size={10} /> {c.code} · {c.article}-modda
+                            <ExternalLink size={9} style={{ opacity: 0.7 }} />
+                          </a>
+                        ) : (
+                          <span key={i} style={chipStyle}>
+                            <BookOpen size={10} /> {c.code} · {c.article}-modda
+                          </span>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

@@ -11,7 +11,7 @@ async function searchLawArticles(query, jurisdiction = 'UZ') {
   const params = keywords.map(k => `%${k}%`)
 
   const { rows } = await pool.query(
-    `SELECT code_name, article_number, title, content FROM law_articles
+    `SELECT code_name, article_number, title, content, source_url, source_name FROM law_articles
      WHERE (jurisdiction = $${params.length + 1} OR jurisdiction = 'UZ') AND (${conditions})
      LIMIT 5`,
     [...params, jurisdiction]
@@ -68,7 +68,7 @@ ${lawContext}`
     stream: true,
   })
 
-  return { stream, citations: articles.map(a => ({ code: a.code_name, article: a.article_number, title: a.title })) }
+  return { stream, citations: articles.map(a => ({ code: a.code_name, article: a.article_number, title: a.title, sourceUrl: a.source_url, sourceName: a.source_name })) }
 }
 
 export async function analyzeContract(text, jurisdiction = 'UZ') {

@@ -10,6 +10,7 @@ headers = []
 publish = "D:\\claude code\\lexcis\\frontend\\dist"
 publishOrigin = "ui"
 commandOrigin = "ui"
+base = "D:\\claude code\\lexcis\\frontend"
 command = "npm run build"
 
 [build.environment]
@@ -28,7 +29,7 @@ command = "npm run build"
 
 [[redirects]]
 from = "/api/*"
-to = "https://yurist-ai-backend.onrender.com/api/:splat"
+to = "https://yurist-ai-production.up.railway.app/api/:splat"
 status = 200.0
 force = true
 

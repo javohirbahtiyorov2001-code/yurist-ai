@@ -77,12 +77,22 @@ const articles = [
   },
 ]
 
+// Verified official lex.uz document links per code (document-level, current redaction)
+const SOURCE_URLS = {
+  'Civil Code': 'https://lex.uz/docs/-111189',
+  'Labor Code': 'https://lex.uz/docs/-142859',
+  'Tax Code': 'https://lex.uz/docs/-4674902',
+  'Law on Protection of Consumer Rights': 'https://lex.uz/docs/-4704',
+}
+
 for (const article of articles) {
+  const sourceUrl = article.jurisdiction === 'UZ' ? (SOURCE_URLS[article.code_name] || null) : null
+  const sourceName = sourceUrl ? 'lex.uz' : null
   await pool.query(
-    `INSERT INTO law_articles (jurisdiction, code_name, article_number, title, content, tags)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO law_articles (jurisdiction, code_name, article_number, title, content, tags, source_url, source_name)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT DO NOTHING`,
-    [article.jurisdiction, article.code_name, article.article_number, article.title, article.content, article.tags]
+    [article.jurisdiction, article.code_name, article.article_number, article.title, article.content, article.tags, sourceUrl, sourceName]
   )
 }
 

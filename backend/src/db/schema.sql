@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS law_articles (
   content TEXT NOT NULL,
   tags TEXT[],
   effective_date DATE,
+  source_url TEXT,
+  source_name VARCHAR(100),
   created_at TIMESTAMP DEFAULT NOW()
 );
 
