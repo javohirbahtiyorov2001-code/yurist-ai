@@ -29,6 +29,8 @@ export const api = {
   chat: {
     list: () => req('/chat/conversations'),
     create: (title) => req('/chat/conversations', { method: 'POST', body: { title } }),
+    update: (id, data) => req(`/chat/conversations/${id}`, { method: 'PATCH', body: data }),
+    remove: (id) => req(`/chat/conversations/${id}`, { method: 'DELETE' }),
     messages: (id) => req(`/chat/conversations/${id}/messages`),
     sendStream: (id, content, jurisdiction, file) => {
       const url = `${BASE}/chat/conversations/${id}/messages`

@@ -13,10 +13,35 @@ const PLAN_LIMITS = { free: 3, pro: Infinity, entity: Infinity }
 
 router.get('/conversations', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT id, title, created_at FROM conversations WHERE user_id = $1 ORDER BY updated_at DESC',
+    'SELECT id, title, pinned, created_at FROM conversations WHERE user_id = $1 ORDER BY pinned DESC, updated_at DESC',
     [req.user.id]
   )
   res.json(rows)
+})
+
+// Rename and/or pin a conversation
+router.patch('/conversations/:id', requireAuth, async (req, res) => {
+  const { title, pinned } = req.body
+  const { rows } = await pool.query(
+    `UPDATE conversations
+     SET title = COALESCE($1, title),
+         pinned = COALESCE($2, pinned)
+     WHERE id = $3 AND user_id = $4
+     RETURNING id, title, pinned, created_at`,
+    [title ?? null, typeof pinned === 'boolean' ? pinned : null, req.params.id, req.user.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: 'Not found' })
+  res.json(rows[0])
+})
+
+// Delete a conversation (messages cascade)
+router.delete('/conversations/:id', requireAuth, async (req, res) => {
+  const { rowCount } = await pool.query(
+    'DELETE FROM conversations WHERE id = $1 AND user_id = $2',
+    [req.params.id, req.user.id]
+  )
+  if (!rowCount) return res.status(404).json({ error: 'Not found' })
+  res.json({ ok: true })
 })
 
 router.post('/conversations', requireAuth, async (req, res) => {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import ReactMarkdown from 'react-markdown'
-import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles, ExternalLink, Paperclip, X, FileText } from 'lucide-react'
+import { Send, Plus, MessageSquare, BookOpen, Scale, Sparkles, ExternalLink, Paperclip, X, FileText, MoreVertical, Pin, PinOff, Pencil, Trash2 } from 'lucide-react'
 
 const SITUATIONS = [
   { emoji: '💼', label: 'Ish joyi muammosi', desc: "Maosh berilmadi yoki huquqlar buzildi", color: '#7c6dff',
@@ -64,10 +64,37 @@ export default function Chat() {
   }, [id])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, streamText])
 
+  const [menuOpen, setMenuOpen] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+
+  const refreshList = () => api.chat.list().then(setConversations).catch(() => {})
+
   const newConversation = async () => {
     const conv = await api.chat.create('New conversation')
     setConversations(c => [conv, ...c])
     navigate(`/app/chat/${conv.id}`)
+  }
+
+  const togglePin = async (conv) => {
+    setMenuOpen(null)
+    try { await api.chat.update(conv.id, { pinned: !conv.pinned }); refreshList() } catch (e) { setError(e.message) }
+  }
+  const startRename = (conv) => { setMenuOpen(null); setEditingId(conv.id); setEditTitle(conv.title || '') }
+  const saveRename = async () => {
+    const id = editingId, title = editTitle.trim()
+    setEditingId(null)
+    if (!title) return
+    try { await api.chat.update(id, { title }); refreshList() } catch (e) { setError(e.message) }
+  }
+  const deleteConversation = async (conv) => {
+    setMenuOpen(null)
+    if (!window.confirm(`Delete "${conv.title || 'this conversation'}"? This cannot be undone.`)) return
+    try {
+      await api.chat.remove(conv.id)
+      setConversations(cs => cs.filter(c => String(c.id) !== String(conv.id)))
+      if (String(conv.id) === String(id)) navigate('/app/chat')
+    } catch (e) { setError(e.message) }
   }
 
   const sendMessage = async () => {
@@ -125,6 +152,7 @@ export default function Chat() {
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
+      <style>{`.conv-row:hover .conv-menu-btn { opacity: 1 !important; }`}</style>
       {/* Conversation sidebar */}
       <div style={{ width: 220, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border)' }}>
@@ -144,21 +172,70 @@ export default function Chat() {
           {conversations.length === 0 && (
             <div style={{ padding: '20px 8px', textAlign: 'center', color: 'var(--text3)', fontSize: 11 }}>No conversations yet</div>
           )}
-          {conversations.map(c => (
-            <button key={c.id} onClick={() => navigate(`/app/chat/${c.id}`)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 8, marginBottom: 2,
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: String(c.id) === String(id) ? 'var(--accent-bg)' : 'transparent',
-                color: String(c.id) === String(id) ? 'var(--accent2)' : 'var(--text2)',
-                fontSize: 12, border: 'none', cursor: 'pointer', transition: 'all 0.12s',
-              }}
-              onMouseEnter={e => { if (String(c.id) !== String(id)) e.currentTarget.style.background = 'var(--bg3)' }}
-              onMouseLeave={e => { if (String(c.id) !== String(id)) e.currentTarget.style.background = 'transparent' }}>
-              <MessageSquare size={11} style={{ flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Conversation'}</span>
-            </button>
-          ))}
+          {conversations.map(c => {
+            const active = String(c.id) === String(id)
+            return (
+              <div key={c.id} className="conv-row" style={{ position: 'relative' }}
+                onMouseLeave={e => { if (!active) e.currentTarget.querySelector('.conv-btn').style.background = 'transparent' }}>
+                {editingId === c.id ? (
+                  <input autoFocus value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    onBlur={saveRename}
+                    onKeyDown={e => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setEditingId(null) }}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: 8, marginBottom: 2, fontSize: 12,
+                      background: 'var(--bg3)', border: '1px solid rgba(124,109,255,0.4)', color: 'var(--text)', outline: 'none' }} />
+                ) : (
+                  <button className="conv-btn" onClick={() => navigate(`/app/chat/${c.id}`)}
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 8, marginBottom: 2,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      background: active ? 'var(--accent-bg)' : 'transparent',
+                      color: active ? 'var(--accent2)' : 'var(--text2)',
+                      fontSize: 12, border: 'none', cursor: 'pointer', transition: 'all 0.12s',
+                    }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg3)' }}>
+                    {c.pinned ? <Pin size={11} style={{ flexShrink: 0, fill: 'currentColor' }} /> : <MessageSquare size={11} style={{ flexShrink: 0 }} />}
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 16 }}>{c.title || 'Conversation'}</span>
+                  </button>
+                )}
+                {/* ⋯ menu trigger */}
+                {editingId !== c.id && (
+                  <button className="conv-menu-btn" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === c.id ? null : c.id) }}
+                    style={{ position: 'absolute', right: 4, top: 6, width: 22, height: 22, borderRadius: 6,
+                      background: menuOpen === c.id ? 'var(--bg4, #2a2a3a)' : 'transparent', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: menuOpen === c.id || active ? 1 : 0, transition: 'opacity 0.12s' }}
+                    title="Options">
+                    <MoreVertical size={13} color="var(--text2)" />
+                  </button>
+                )}
+                {/* Dropdown */}
+                {menuOpen === c.id && (
+                  <>
+                    <div onClick={() => setMenuOpen(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                    <div style={{ position: 'absolute', right: 4, top: 30, zIndex: 41, minWidth: 140,
+                      background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)', padding: 4, overflow: 'hidden' }}>
+                      {[
+                        { icon: c.pinned ? PinOff : Pin, label: c.pinned ? 'Unpin' : 'Pin', onClick: () => togglePin(c) },
+                        { icon: Pencil, label: 'Rename', onClick: () => startRename(c) },
+                        { icon: Trash2, label: 'Delete', onClick: () => deleteConversation(c), danger: true },
+                      ].map(item => (
+                        <button key={item.label} onClick={item.onClick}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px',
+                            borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12,
+                            color: item.danger ? 'var(--red)' : 'var(--text)', textAlign: 'left', transition: 'background 0.1s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'var(--red-bg)' : 'var(--bg3)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <item.icon size={13} /> {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
