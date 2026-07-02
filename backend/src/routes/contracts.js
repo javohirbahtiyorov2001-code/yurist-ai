@@ -23,7 +23,7 @@ router.post('/analyze', requireAuth, upload.single('file'), async (req, res) => 
   if (!PRO_PLANS.includes(userRows[0]?.plan)) {
     return res.status(403).json({ error: 'Contract analysis requires a Pro or Entity plan. Upgrade to access this feature.' })
   }
-  const { jurisdiction = 'UZ' } = req.body
+  const jurisdiction = 'UZ' // Uzbekistan-only for now; other regions coming soon
 
   let text = ''
   if (req.file) {

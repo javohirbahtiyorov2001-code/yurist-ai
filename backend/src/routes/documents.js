@@ -27,7 +27,8 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 router.post('/draft', requireAuth, async (req, res) => {
-  const { type, parameters, jurisdiction = 'UZ' } = req.body
+  const { type, parameters } = req.body
+  const jurisdiction = 'UZ' // Uzbekistan-only for now; other regions coming soon
   if (!type || !parameters) return res.status(400).json({ error: 'type and parameters required' })
   if (!DOCUMENT_TYPES[type]) return res.status(400).json({ error: 'Unknown document type' })
 

@@ -68,14 +68,6 @@ const articles = [
     tags: ['contract', 'termination', 'modification', 'breach'],
   },
   {
-    jurisdiction: 'KZ',
-    code_name: 'Civil Code',
-    article_number: '378',
-    title: 'Concept and terms of the contract',
-    content: 'A contract is an agreement of two or more persons on the establishment, modification or termination of civil rights and obligations. The terms of the contract are determined by the parties at their own discretion, except in cases where the relevant terms are prescribed by legislative acts.',
-    tags: ['contract', 'civil law', 'Kazakhstan'],
-  },
-  {
     jurisdiction: 'UZ',
     code_name: 'Law on Protection of Consumer Rights',
     article_number: '14',

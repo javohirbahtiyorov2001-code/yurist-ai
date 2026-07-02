@@ -35,7 +35,8 @@ router.get('/conversations/:id/messages', requireAuth, async (req, res) => {
 })
 
 router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
-  const { content, jurisdiction = 'UZ' } = req.body
+  const { content } = req.body
+  const jurisdiction = 'UZ' // Uzbekistan-only for now; other regions coming soon
   if (!content?.trim()) return res.status(400).json({ error: 'Message required' })
 
   const { rows: conv } = await pool.query('SELECT id FROM conversations WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id])
