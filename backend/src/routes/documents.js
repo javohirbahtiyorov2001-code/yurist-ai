@@ -13,6 +13,14 @@ const DOCUMENT_TYPES = {
   service: 'Service Agreement',
   loan: 'Loan Agreement',
   lease: 'Commercial Lease Agreement',
+  supply: 'Supply Agreement',
+  distribution: 'Distribution Agreement',
+  agency: 'Agency Agreement',
+  ip_assignment: 'Intellectual Property Assignment Agreement',
+  charter: 'Company Charter (Ustav)',
+  founding_decision: 'Founding Decision / Resolution',
+  power_of_attorney: 'Power of Attorney (Ishonchnoma)',
+  meeting_minutes: 'Meeting Minutes (Bayonnoma)',
 }
 
 router.get('/types', (req, res) => {
@@ -45,7 +53,8 @@ router.post('/draft', requireAuth, async (req, res) => {
 
     res.json({ id: rows[0].id, title, content })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('documents/draft:', err)
+    res.status(500).json({ error: 'Server error' })
   }
 })
 

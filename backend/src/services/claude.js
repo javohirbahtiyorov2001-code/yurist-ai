@@ -54,6 +54,13 @@ SCOPE — UZBEKISTAN ONLY:
 - Never reference the laws of Russia, Kazakhstan, Azerbaijan, or any other country. Do NOT say "in Russia, Kazakhstan and Uzbekistan..." or ask which country the user is in — assume Uzbekistan.
 - If the user explicitly asks about another country, say that Yurist AI currently covers only Uzbekistan and support for other regions is coming soon.
 
+ASK BEFORE YOU ANSWER (very important — your users are not lawyers):
+- If the user's message is missing key facts you'd need to give reliable, specific advice, DO NOT guess. First ask 2–4 short, specific clarifying questions (things a lawyer would ask), then stop and wait.
+- Ask about the facts that actually change the legal answer — e.g. how long they worked somewhere, whether something was in writing, dates, amounts, whether they signed anything.
+- Number the questions and keep them in plain language. You may add one sentence of preliminary reassurance, but do NOT give the full structured answer yet.
+- Once the user has given enough detail (or says they don't know), give the full structured answer below.
+- If the question is already clear and specific, skip straight to the full answer — don't ask unnecessary questions.
+
 CITATION RULES — THIS IS THE MOST IMPORTANT RULE:
 - You may cite a specific article number ONLY if that exact article appears in the RETRIEVED UZBEK LAW ARTICLES section below.
 - NEVER invent, guess, or recall article numbers from memory. If the retrieved section is empty or doesn't contain a relevant article, DO NOT cite any article number at all.
@@ -121,13 +128,18 @@ ${text.slice(0, 8000)}`
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2000,
+    max_tokens: 4000,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const raw = response.content[0].text
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
-  return jsonMatch ? JSON.parse(jsonMatch[0]) : { error: 'Could not parse analysis', raw }
+  if (!jsonMatch) return { error: 'Could not parse analysis', raw }
+  try {
+    return JSON.parse(jsonMatch[0])
+  } catch {
+    return { error: 'Could not parse analysis', raw }
+  }
 }
 
 // Multi-document tabular review: compare N documents into a structured comparison table
@@ -184,6 +196,69 @@ RULES:
 }
 
 // Draft a new document based on a company's saved template, filling in new details
+// Proactively scan a company's saved documents and surface risks / things to watch
+export async function scanWorkspace(items, lang = 'uz') {
+  const langName = LANG_NAME[lang] || LANG_NAME.uz
+  const inventory = items.map((it, i) => `${i + 1}. [${it.kind}] ${it.title}${it.detail ? ` — ${it.detail}` : ''}`).join('\n')
+
+  const prompt = `You are a proactive in-house legal advisor for a company in Uzbekistan. Below is the list of legal documents and analyses this company has created. Based ONLY on this list, identify what the company should proactively watch out for: expiring/renewing obligations, unresolved risks, missing standard documents a business like this should have, and follow-up actions. Be practical and specific. Respond in ${langName}.
+
+Return AT MOST 6 observations. Keep each "detail" to 1-2 sentences and "action" to one sentence.
+Return ONLY JSON (no markdown fences):
+{
+  "observations": [
+    { "severity": "high|medium|low", "title": "short heading", "detail": "what and why (1-2 sentences)", "action": "concrete next step (1 sentence)" }
+  ]
+}
+
+COMPANY DOCUMENTS:
+${inventory}`
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6', max_tokens: 2500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const raw = response.content[0].text
+  const m = raw.match(/\{[\s\S]*\}/)
+  if (!m) return { observations: [] }
+  try { return JSON.parse(m[0]) } catch { return { observations: [] } }
+}
+
+// Produce clause-level redline suggestions (tracked-changes style) for a contract
+export async function redlineContract(text, lang = 'uz') {
+  const langName = LANG_NAME[lang] || LANG_NAME.uz
+  const prompt = `You are a senior contract lawyer for Uzbekistan protecting YOUR client's interests. Review the contract and propose concrete edits (a redline) to make it safer and fairer for your client. For each problematic clause, quote the exact original wording and give an improved replacement.
+
+Return ONLY JSON:
+{
+  "summary": "2-3 sentence plain-language overview of the main changes",
+  "edits": [
+    {
+      "clause": "short label (e.g. Termination, Payment, Liability)",
+      "severity": "high|medium|low",
+      "original": "the exact problematic wording copied from the contract",
+      "suggested": "the improved replacement wording",
+      "reason": "why this change protects the client (plain language)"
+    }
+  ],
+  "additions": [ { "clause": "...", "suggested": "a clause that should be ADDED but is missing", "reason": "..." } ]
+}
+
+Write "reason" and labels in ${langName}. Keep "original" verbatim from the contract; keep "suggested" as clean contract language.
+
+CONTRACT:
+${text.slice(0, 10000)}`
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6', max_tokens: 3000,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const raw = response.content[0].text
+  const m = raw.match(/\{[\s\S]*\}/)
+  if (!m) return { error: 'Could not parse redline', raw }
+  try { return JSON.parse(m[0]) } catch { return { error: 'Could not parse redline', raw } }
+}
+
 export async function draftFromTemplate(templateContent, instructions, lang = 'uz') {
   const langName = LANG_NAME[lang] || LANG_NAME.uz
   const prompt = `You are a legal drafter for a company in Uzbekistan. Below is the company's OWN standard template. Produce a new, complete document that follows this template's structure, style, and clauses exactly, but adapted to the new details provided. Keep the company's preferred wording. Respond in ${langName}.
@@ -240,6 +315,14 @@ export async function draftDocument(type, parameters, jurisdiction = 'UZ') {
     service: 'Service Agreement',
     loan: 'Loan Agreement',
     lease: 'Commercial Lease Agreement',
+    supply: 'Supply Agreement',
+    distribution: 'Distribution Agreement',
+    agency: 'Agency Agreement',
+    ip_assignment: 'Intellectual Property Assignment Agreement',
+    charter: 'Company Charter (Ustav)',
+    founding_decision: 'Founding Decision / Resolution',
+    power_of_attorney: 'Power of Attorney (Ishonchnoma)',
+    meeting_minutes: 'Meeting Minutes (Bayonnoma)',
   }
 
   const docName = templates[type] || type

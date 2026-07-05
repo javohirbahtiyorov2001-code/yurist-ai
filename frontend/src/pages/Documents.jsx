@@ -47,6 +47,59 @@ const FIELDS = {
     { key: 'rent', label: 'Monthly rent', placeholder: '5,000,000 UZS' },
     { key: 'duration', label: 'Lease duration', placeholder: '2 years' },
   ],
+  supply: [
+    { key: 'supplier', label: 'Supplier name', placeholder: 'Supplier LLC' },
+    { key: 'buyer', label: 'Buyer name', placeholder: 'Acme LLC' },
+    { key: 'goods', label: 'Goods description', placeholder: 'Office furniture, monthly delivery' },
+    { key: 'price', label: 'Price & payment terms', placeholder: '50,000,000 UZS, net 30 days' },
+    { key: 'duration', label: 'Term', placeholder: '1 year' },
+  ],
+  distribution: [
+    { key: 'principal', label: 'Principal / supplier', placeholder: 'Brand LLC' },
+    { key: 'distributor', label: 'Distributor name', placeholder: 'Acme Distribution LLC' },
+    { key: 'territory', label: 'Territory', placeholder: 'Tashkent region' },
+    { key: 'products', label: 'Products', placeholder: 'Consumer electronics' },
+    { key: 'exclusivity', label: 'Exclusive or non-exclusive', placeholder: 'Exclusive' },
+    { key: 'duration', label: 'Term', placeholder: '2 years' },
+  ],
+  agency: [
+    { key: 'principal', label: 'Principal name', placeholder: 'Acme LLC' },
+    { key: 'agent', label: 'Agent name', placeholder: 'Agent LLC' },
+    { key: 'scope', label: 'Scope of authority', placeholder: 'Sales representation in Uzbekistan' },
+    { key: 'commission', label: 'Commission', placeholder: '10% of sales' },
+    { key: 'duration', label: 'Term', placeholder: '1 year' },
+  ],
+  ip_assignment: [
+    { key: 'assignor', label: 'Assignor (current owner)', placeholder: 'John Developer' },
+    { key: 'assignee', label: 'Assignee (new owner)', placeholder: 'Acme LLC' },
+    { key: 'ip', label: 'IP being assigned', placeholder: 'Software source code, logo, trademark' },
+    { key: 'consideration', label: 'Payment / consideration', placeholder: '20,000,000 UZS' },
+  ],
+  charter: [
+    { key: 'companyName', label: 'Company name', placeholder: 'Acme MChJ' },
+    { key: 'founders', label: 'Founders', placeholder: 'Ali Valiyev (50%), Vali Aliyev (50%)' },
+    { key: 'charterCapital', label: 'Charter capital', placeholder: '100,000,000 UZS' },
+    { key: 'activity', label: 'Main activity', placeholder: 'Software development' },
+    { key: 'address', label: 'Legal address', placeholder: 'Tashkent, ...' },
+  ],
+  founding_decision: [
+    { key: 'companyName', label: 'Company name', placeholder: 'Acme MChJ' },
+    { key: 'founders', label: 'Founder(s)', placeholder: 'Ali Valiyev' },
+    { key: 'director', label: 'Appointed director', placeholder: 'Ali Valiyev' },
+    { key: 'charterCapital', label: 'Charter capital', placeholder: '100,000,000 UZS' },
+  ],
+  power_of_attorney: [
+    { key: 'grantor', label: 'Grantor (who gives authority)', placeholder: 'Acme MChJ / Ali Valiyev' },
+    { key: 'attorney', label: 'Attorney (who receives it)', placeholder: 'Vali Aliyev' },
+    { key: 'powers', label: 'Powers granted', placeholder: 'Represent the company in courts and state bodies' },
+    { key: 'duration', label: 'Valid until', placeholder: '2027-01-01' },
+  ],
+  meeting_minutes: [
+    { key: 'companyName', label: 'Company name', placeholder: 'Acme MChJ' },
+    { key: 'date', label: 'Meeting date', placeholder: '2026-07-01' },
+    { key: 'attendees', label: 'Attendees', placeholder: 'Ali Valiyev, Vali Aliyev' },
+    { key: 'agenda', label: 'Agenda / decisions', placeholder: 'Approve annual report; appoint new director' },
+  ],
 }
 
 export default function Documents() {

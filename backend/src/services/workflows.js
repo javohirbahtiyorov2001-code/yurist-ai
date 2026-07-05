@@ -73,6 +73,87 @@ export const WORKFLOWS = [
       { name: 'Keyingi qadamlar', tool: 'checklist', instruction: "Mehnat nizolarini hal qilish tartibi: mehnat inspeksiyasi va sudga murojaat qadamlarini ko'rsating." },
     ],
   },
+  {
+    key: 'debt_collection',
+    title: 'Qarzni undirish',
+    subtitle: 'Debt collection',
+    icon: '💰',
+    description: "Kimdir sizga qarzdor? Huquqlaringizni aniqlaymiz, rasmiy talabnoma tayyorlaymiz va undirish tartibini ko'rsatamiz.",
+    inputs: [
+      { key: 'situation', label: 'Qarz haqida ma\'lumot', type: 'textarea', placeholder: "Kim, qancha, qachondan beri qarzdor? Yozma hujjat bormi?", required: true },
+    ],
+    acceptsFiles: true,
+    steps: [
+      { name: 'Huquqlaringiz', tool: 'research', instruction: "Qarzni undirish bo'yicha O'zbekiston fuqarolik qonunchiligiga ko'ra huquqlarni tushuntiring (jumladan neustoyka, FK 386-modda)." },
+      { name: 'Talabnoma', tool: 'draft', instruction: "Qarzdorga qaratilgan rasmiy talabnoma (pretenziya) xatini tayyorlang: summa, muddat, huquqiy asos, ogohlantirish bilan." },
+      { name: 'Keyingi qadamlar', tool: 'checklist', instruction: "Agar qarzdor to'lamasa: sudga murojaat, sud buyrug'i tartibi va kerakli hujjatlarni ko'rsating." },
+    ],
+  },
+  {
+    key: 'breach_claim',
+    title: 'Shartnoma buzilishi bo\'yicha da\'vo',
+    subtitle: 'Breach of contract claim',
+    icon: '📕',
+    description: "Kontragent shartnomani buzdi? Vaziyatni baholaymiz va da'vo xatini tayyorlaymiz.",
+    inputs: [
+      { key: 'situation', label: 'Nima bo\'ldi?', type: 'textarea', placeholder: "Shartnoma qanday buzildi, qanday zarar ko'rdingiz?", required: true },
+    ],
+    acceptsFiles: true,
+    steps: [
+      { name: 'Baholash', tool: 'research', instruction: "Shartnoma buzilishi jiddiymi (FK 450-modda), qanday huquqiy oqibatlari bor — baholang." },
+      { name: 'Da\'vo xati', tool: 'draft', instruction: "Kontragentga qaratilgan da'vo (pretenziya) xatini tayyorlang: buzilish, talab, zararni qoplash, muddat bilan." },
+      { name: 'Keyingi qadamlar', tool: 'checklist', instruction: "Nizoni sudgacha va sud orqali hal qilish tartibi, kerakli dalillar." },
+    ],
+  },
+  {
+    key: 'claim_response',
+    title: 'Da\'voga javob',
+    subtitle: 'Respond to a claim',
+    icon: '🛡️',
+    description: "Sizga qarshi da'vo yoki talabnoma keldimi? Uni tahlil qilamiz va himoya javobini tayyorlaymiz.",
+    inputs: [
+      { key: 'claim', label: 'Sizga qarshi qanday talab qo\'yilmoqda?', type: 'textarea', placeholder: "Talabning mazmuni, kimdan kelgan, nima talab qilinmoqda?", required: true },
+    ],
+    acceptsFiles: true,
+    steps: [
+      { name: 'Da\'voni tahlil', tool: 'research', instruction: "Sizga qarshi qo'yilgan talabni tahlil qiling: asosli qismlari va e'tiroz bildirish mumkin bo'lgan qismlari." },
+      { name: 'Javob xati', tool: 'draft', instruction: "Talabga rasmiy javob (e'tiroz) xatini tayyorlang — o'z pozitsiyangizni huquqiy asos bilan himoya qiling." },
+      { name: 'Keyingi qadamlar', tool: 'checklist', instruction: "Agar ish sudga oshsa, o'zingizni himoya qilish uchun qadamlar va dalillar." },
+    ],
+  },
+  {
+    key: 'hr_pack',
+    title: 'Kadrlar to\'plami (ishga qabul)',
+    subtitle: 'HR hiring pack',
+    icon: '👔',
+    description: "Yangi xodim olyapsizmi? Bir buyurtmada barcha kerakli kadrlar hujjatlarini tayyorlaymiz: shartnoma, buyruq, lavozim yo'riqnomasi, NDA.",
+    inputs: [
+      { key: 'details', label: 'Xodim va lavozim tafsilotlari', type: 'textarea', placeholder: "F.I.Sh., lavozim, oylik, ish boshlash sanasi, asosiy vazifalar…", required: true },
+    ],
+    acceptsFiles: false,
+    steps: [
+      { name: 'Mehnat shartnomasi', tool: 'draft', instruction: "To'liq mehnat shartnomasini tayyorlang (Mehnat kodeksiga muvofiq: lavozim, ish haqi, ish vaqti, ta'til, bekor qilish)." },
+      { name: 'Ishga qabul buyrug\'i', tool: 'draft', instruction: "Ishga qabul qilish to'g'risidagi rasmiy buyruqni (buyruq) tayyorlang." },
+      { name: 'Lavozim yo\'riqnomasi', tool: 'draft', instruction: "Xodimning lavozim yo'riqnomasini (majburiyatlar, huquqlar, javobgarlik) tayyorlang." },
+      { name: 'Maxfiylik kelishuvi (NDA)', tool: 'draft', instruction: "Xodim bilan maxfiylik shartnomasini (NDA) tayyorlang." },
+    ],
+  },
+  {
+    key: 'business_registration',
+    title: 'Biznes ro\'yxatdan o\'tkazish',
+    subtitle: 'Business registration guide',
+    icon: '🏢',
+    description: "MChJ yoki YaTT ochmoqchimisiz? Kerakli hujjatlar ro'yxati, ta'sis qarori va bosqichma-bosqich ro'yxatdan o'tkazish yo'riqnomasini tayyorlaymiz.",
+    inputs: [
+      { key: 'details', label: 'Biznes tafsilotlari', type: 'textarea', placeholder: "Tashkilot turi (MChJ/YaTT), nomi, ta'sischilar, ustav kapitali, faoliyat turi…", required: true },
+    ],
+    acceptsFiles: false,
+    steps: [
+      { name: 'Kerakli hujjatlar', tool: 'checklist', instruction: "O'zbekistonda ushbu turdagi biznesni ro'yxatdan o'tkazish uchun kerak bo'ladigan barcha hujjatlar ro'yxatini tuzing." },
+      { name: 'Ta\'sis qarori', tool: 'draft', instruction: "Ta'sischi(lar)ning ta'sis qarorini (founding decision) tayyorlang: tashkilot tashkil etish, ustav kapitali, direktor tayinlash." },
+      { name: 'Ro\'yxatga olish bosqichlari', tool: 'checklist', instruction: "davlat xizmatlari markazi / birdarcha oyna orqali ro'yxatdan o'tkazishning bosqichma-bosqich tartibini, taxminiy muddat va davlat bojini ko'rsating." },
+    ],
+  },
 ]
 
 async function searchLaw(query) {

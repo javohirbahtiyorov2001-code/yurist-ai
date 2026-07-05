@@ -53,7 +53,8 @@ router.post('/', requireAuth, upload.array('files', 12), async (req, res) => {
     await saveWorkspaceItem(req.user.organization_id, req.user.id, 'review', result.title || 'Document review', result)
     res.json(result)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('review:', err)
+    res.status(500).json({ error: 'Server error' })
   }
 })
 

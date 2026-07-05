@@ -55,6 +55,7 @@ export const api = {
   contracts: {
     list: () => req('/contracts'),
     analyze: (formData) => req('/contracts/analyze', { method: 'POST', body: formData }),
+    redline: (formData) => req('/contracts/redline', { method: 'POST', body: formData }),
     get: (id) => req(`/contracts/${id}`),
   },
   review: {
@@ -74,12 +75,32 @@ export const api = {
     list: (kind) => req(`/workspace${kind ? `?kind=${kind}` : ''}`),
     get: (id) => req(`/workspace/${id}`),
     remove: (id) => req(`/workspace/${id}`, { method: 'DELETE' }),
+    scan: (lang) => req('/workspace/scan', { method: 'POST', body: { lang } }),
+  },
+  compliance: {
+    list: () => req('/compliance'),
+    create: (data) => req('/compliance', { method: 'POST', body: data }),
+    update: (id, data) => req(`/compliance/${id}`, { method: 'PATCH', body: data }),
+    remove: (id) => req(`/compliance/${id}`, { method: 'DELETE' }),
+    loadPresets: () => req('/compliance/presets', { method: 'POST' }),
+  },
+  lawyers: {
+    list: (specialty) => req(`/lawyers${specialty ? `?specialty=${specialty}` : ''}`),
+    me: () => req('/lawyers/me'),
+    saveProfile: (data) => req('/lawyers/profile', { method: 'POST', body: data }),
+  },
+  lawyerRequests: {
+    create: (data) => req('/lawyer-requests', { method: 'POST', body: data }),
+    mine: () => req('/lawyer-requests/mine'),
+    inbox: () => req('/lawyer-requests/inbox'),
+    update: (id, status) => req(`/lawyer-requests/${id}`, { method: 'PATCH', body: { status } }),
   },
   templates: {
     list: () => req('/templates'),
     create: (data) => req('/templates', { method: 'POST', body: data }),
     get: (id) => req(`/templates/${id}`),
     remove: (id) => req(`/templates/${id}`, { method: 'DELETE' }),
+    loadStarterPack: () => req('/templates/starter-pack', { method: 'POST' }),
     draft: (id, instructions, lang) => req(`/templates/${id}/draft`, { method: 'POST', body: { instructions, lang } }),
     compare: (id, formData) => req(`/templates/${id}/compare`, { method: 'POST', body: formData }),
   },

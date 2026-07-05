@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth.jsx'
 import { useState } from 'react'
-import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2, Workflow, Globe, FolderOpen, Library, Users } from 'lucide-react'
+import { MessageSquare, FileText, FileEdit, LogOut, LayoutDashboard, Sparkles, Table2, Workflow, Globe, FolderOpen, Library, Users, CalendarClock, Scale, Inbox } from 'lucide-react'
 import { getLang, setLang, LANGS } from '../lib/lang.js'
 
 function LogoHex({ size = 28 }) {
@@ -33,6 +33,7 @@ export default function Layout() {
   const handleLogout = () => { logout(); navigate('/') }
   const [lang, setLangState] = useState(getLang())
 
+  const isLawyer = user?.account_type === 'lawyer'
   const navItems = [
     { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/app/chat', label: 'Legal Q&A', icon: MessageSquare },
@@ -42,6 +43,14 @@ export default function Layout() {
     { to: '/app/documents', label: 'Documents', icon: FileEdit },
     { to: '/app/templates', label: 'Template Library', icon: Library },
     { to: '/app/workspace', label: 'Workspace', icon: FolderOpen },
+    { to: '/app/compliance', label: 'Compliance', icon: CalendarClock },
+    // Lawyer accounts get an inbox + profile; clients get the lawyer marketplace
+    ...(isLawyer
+      ? [
+          { to: '/app/lawyer/requests', label: 'Mijoz so\'rovlari', icon: Inbox },
+          { to: '/app/lawyer/profile', label: 'Yurist profili', icon: Scale },
+        ]
+      : [{ to: '/app/lawyers', label: 'Yuristlar', icon: Scale }]),
     { to: '/app/team', label: 'Team', icon: Users },
   ]
 

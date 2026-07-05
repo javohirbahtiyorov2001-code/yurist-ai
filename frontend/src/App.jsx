@@ -11,6 +11,10 @@ import Workflows from './pages/Workflows.jsx'
 import Documents from './pages/Documents.jsx'
 import Workspace from './pages/Workspace.jsx'
 import Templates from './pages/Templates.jsx'
+import Compliance from './pages/Compliance.jsx'
+import Lawyers from './pages/Lawyers.jsx'
+import LawyerProfile from './pages/LawyerProfile.jsx'
+import LawyerRequests from './pages/LawyerRequests.jsx'
 import Team from './pages/Team.jsx'
 import Layout from './components/Layout.jsx'
 
@@ -38,6 +42,10 @@ export default function App() {
             <Route path="documents" element={<Documents />} />
             <Route path="workspace" element={<Workspace />} />
             <Route path="templates" element={<Templates />} />
+            <Route path="compliance" element={<Compliance />} />
+            <Route path="lawyers" element={<Lawyers />} />
+            <Route path="lawyer/profile" element={<LawyerProfile />} />
+            <Route path="lawyer/requests" element={<LawyerRequests />} />
             <Route path="team" element={<Team />} />
           </Route>
         </Routes>

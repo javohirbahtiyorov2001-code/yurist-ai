@@ -2,7 +2,65 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
-import { Upload, FileText, AlertTriangle, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { getLang } from '../lib/lang.js'
+import { downloadWord, printPDF } from '../lib/export.js'
+import { Upload, FileText, AlertTriangle, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Lock, Pencil, Printer } from 'lucide-react'
+
+function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+function RedlineView({ data }) {
+  const edits = data.edits || []
+  const additions = data.additions || []
+  const sevColor = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--green)' }
+
+  const exportHtml = () => {
+    let h = data.summary ? `<p>${esc(data.summary)}</p>` : ''
+    for (const e of edits) {
+      h += `<h3>${esc(e.clause)} [${esc(e.severity)}]</h3>`
+      h += `<p><span style="color:#b00;text-decoration:line-through">${esc(e.original)}</span></p>`
+      h += `<p><span style="color:#070;text-decoration:underline">${esc(e.suggested)}</span></p>`
+      h += `<p><i>${esc(e.reason)}</i></p>`
+    }
+    if (additions.length) {
+      h += `<h2>Qo'shilishi kerak bo'lgan bandlar</h2>`
+      for (const a of additions) h += `<h3>${esc(a.clause)}</h3><p><span style="color:#070;text-decoration:underline">${esc(a.suggested)}</span></p><p><i>${esc(a.reason)}</i></p>`
+    }
+    return h
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ flex: 1, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{data.summary}</div>
+        <button onClick={() => downloadWord('Redline', exportHtml())} className="btn btn-ghost btn-sm"><FileText size={13} /> Word</button>
+        <button onClick={() => printPDF('Redline', exportHtml())} className="btn btn-ghost btn-sm"><Printer size={13} /> PDF</button>
+      </div>
+      {edits.map((e, i) => (
+        <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{e.clause}</span>
+            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: 'var(--bg3)', color: sevColor[e.severity] || 'var(--text3)', fontWeight: 600, textTransform: 'uppercase' }}>{e.severity}</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--red)', textDecoration: 'line-through', marginBottom: 5, lineHeight: 1.5 }}>{e.original}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--green)', marginBottom: 6, lineHeight: 1.5 }}>➜ {e.suggested}</div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', fontStyle: 'italic' }}>{e.reason}</div>
+        </div>
+      ))}
+      {additions.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Qo'shilishi kerak bo'lgan bandlar</div>
+          {additions.map((a, i) => (
+            <div key={i} style={{ border: '1px dashed var(--border2)', borderRadius: 10, padding: 14, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 5 }}>{a.clause}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--green)', marginBottom: 6, lineHeight: 1.5 }}>+ {a.suggested}</div>
+              <div style={{ fontSize: 12, color: 'var(--text2)', fontStyle: 'italic' }}>{a.reason}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function RiskBadge({ score }) {
   if (score >= 70) return <span className="badge badge-green">Low risk · {score}/100</span>
@@ -89,6 +147,7 @@ export default function Contracts() {
   const [contracts, setContracts] = useState([])
   const [selected, setSelected] = useState(null)
   const [mode, setMode] = useState('upload')
+  const [action, setAction] = useState('analyze')   // analyze | redline
   const [text, setText] = useState('')
   const [jurisdiction, setJurisdiction] = useState('UZ')
   const [loading, setLoading] = useState(false)
@@ -98,16 +157,39 @@ export default function Contracts() {
 
   useEffect(() => { api.contracts.list().then(setContracts).catch(() => {}) }, [])
 
-  const analyze = async (file) => {
+  // Animated staged progress for the long (~50s) analyze/redline call
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    if (!loading) { setProgress(0); return }
+    setProgress(6)
+    const iv = setInterval(() => setProgress(p => Math.min(96, p + (96 - p) * 0.055)), 600)
+    return () => clearInterval(iv)
+  }, [loading])
+  const STAGES = [
+    { at: 0, label: "Hujjat o'qilmoqda…" },
+    { at: 22, label: 'Bandlar tahlil qilinmoqda…' },
+    { at: 48, label: "Qonunga muvofiqlik tekshirilmoqda…" },
+    { at: 70, label: action === 'redline' ? 'Tuzatishlar tayyorlanmoqda…' : 'Xavflar baholanmoqda…' },
+    { at: 88, label: 'Hisobot yakunlanmoqda…' },
+  ]
+  const stageLabel = [...STAGES].reverse().find(s => progress >= s.at)?.label
+
+  const run = async (file) => {
     setLoading(true); setError(''); setResult(null)
     try {
       const fd = new FormData()
       if (file) fd.append('file', file)
       else fd.append('text', text)
       fd.append('jurisdiction', jurisdiction)
-      const data = await api.contracts.analyze(fd)
-      setResult(data)
-      api.contracts.list().then(setContracts).catch(() => {})
+      fd.append('lang', getLang())
+      if (action === 'redline') {
+        const data = await api.contracts.redline(fd)
+        setResult({ kind: 'redline', ...data })
+      } else {
+        const data = await api.contracts.analyze(fd)
+        setResult({ kind: 'analyze', ...data })
+        api.contracts.list().then(setContracts).catch(() => {})
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -118,7 +200,7 @@ export default function Contracts() {
   const handleDrop = (e) => {
     e.preventDefault(); setDragOver(false)
     const file = e.dataTransfer.files[0]
-    if (file) analyze(file)
+    if (file) run(file)
   }
 
   return (
@@ -157,18 +239,20 @@ export default function Contracts() {
 
         {isPro && !result && (
           <div className="card" style={{ marginBottom: 24 }}>
+            {/* What to do */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <button onClick={() => setAction('analyze')} className={`btn ${action === 'analyze' ? 'btn-primary' : 'btn-ghost'} btn-sm`}><AlertTriangle size={13} /> Risklarni tahlil qilish</button>
+              <button onClick={() => setAction('redline')} className={`btn ${action === 'redline' ? 'btn-primary' : 'btn-ghost'} btn-sm`}><Pencil size={13} /> Tuzatishlar (redline)</button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>
+              {action === 'analyze' ? 'Xavflarni aniqlaymiz va xavf balini beramiz.' : 'Har bir xavfli bandga aniq tuzatish taklif qilamiz — tayyor tahrir.'}
+            </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
               {['upload', 'paste'].map(m => (
                 <button key={m} onClick={() => setMode(m)} className={`btn ${mode === m ? 'btn-primary' : 'btn-ghost'} btn-sm`}>
                   {m === 'upload' ? 'Upload file' : 'Paste text'}
                 </button>
               ))}
-              <select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)}
-                style={{ marginLeft: 'auto', background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--text)', padding: '6px 10px', borderRadius: 8, fontSize: 12, outline: 'none' }}>
-                <option value="UZ">Uzbekistan</option>
-                <option value="KZ">Kazakhstan</option>
-                <option value="AZ">Azerbaijan</option>
-              </select>
             </div>
 
             {mode === 'upload' ? (
@@ -179,15 +263,15 @@ export default function Contracts() {
                 <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16 }}>PDF or TXT file, max 10MB</div>
                 <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
                   Browse files
-                  <input type="file" accept=".pdf,.txt,.doc" style={{ display: 'none' }} onChange={e => e.target.files[0] && analyze(e.target.files[0])} />
+                  <input type="file" accept=".pdf,.txt,.doc" style={{ display: 'none' }} onChange={e => e.target.files[0] && run(e.target.files[0])} />
                 </label>
               </div>
             ) : (
               <div>
                 <textarea className="input" value={text} onChange={e => setText(e.target.value)} placeholder="Paste your contract text here..."
                   style={{ height: 280, resize: 'vertical' }} />
-                <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => analyze(null)} disabled={!text.trim() || loading}>
-                  {loading ? 'Analyzing...' : 'Analyze contract'}
+                <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => run(null)} disabled={!text.trim() || loading}>
+                  {loading ? 'Ishlanmoqda...' : (action === 'redline' ? 'Tuzatishlarni yaratish' : 'Analyze contract')}
                 </button>
               </div>
             )}
@@ -195,10 +279,15 @@ export default function Contracts() {
         )}
 
         {isPro && loading && (
-          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text2)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⚖️</div>
-            <div style={{ fontWeight: 500, marginBottom: 6 }}>Analyzing contract...</div>
-            <div style={{ fontSize: 13 }}>Reading clauses, checking CIS law compliance, scoring risks</div>
+          <div style={{ maxWidth: 460, margin: '48px auto', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, marginBottom: 14 }}>⚖️</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{action === 'redline' ? 'Tuzatishlar tayyorlanmoqda' : 'Shartnoma tahlil qilinmoqda'}</div>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 18, minHeight: 18 }}>{stageLabel}</div>
+            <div style={{ height: 8, background: 'var(--bg3)', borderRadius: 20, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress}%`, borderRadius: 20, background: 'linear-gradient(90deg, var(--accent), #9b6dff)', transition: 'width 0.6s ease-out' }} />
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8, fontWeight: 600 }}>{Math.round(progress)}%</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>Bu bir necha soniya vaqt olishi mumkin</div>
           </div>
         )}
 
@@ -207,10 +296,12 @@ export default function Contracts() {
         {isPro && result && !loading && (
           <div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setResult(null); setSelected(null); setText('') }}>← New analysis</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setResult(null); setSelected(null); setText('') }}>← Yangi</button>
             </div>
             <div className="card">
-              <AnalysisView analysis={result.analysis} score={result.riskScore} />
+              {result.kind === 'redline'
+                ? <RedlineView data={result} />
+                : <AnalysisView analysis={result.analysis} score={result.riskScore} />}
             </div>
           </div>
         )}

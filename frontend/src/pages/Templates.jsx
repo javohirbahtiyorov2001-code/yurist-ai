@@ -35,6 +35,7 @@ export default function Templates() {
     catch (e) { setError(e.message) }
   }
   const del = async (id, e) => { e?.stopPropagation(); if (!window.confirm('Delete this template?')) return; await api.templates.remove(id); load() }
+  const loadStarter = async () => { setError(''); try { await api.templates.loadStarterPack(); load() } catch (e) { setError(e.message) } }
 
   const runDraft = async () => {
     if (!instructions.trim()) return
@@ -147,8 +148,11 @@ export default function Templates() {
       {templates.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text3)' }}>
           <Library size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
-          <div style={{ fontSize: 14, marginBottom: 14 }}>Hozircha shablon yo'q. Kompaniyangizning standart shartnomasini qo'shing.</div>
-          <button onClick={() => setView('create')} className="btn btn-primary btn-sm"><Plus size={14} /> Birinchi shablonni qo'shish</button>
+          <div style={{ fontSize: 14, marginBottom: 14 }}>Hozircha shablon yo'q. Standart to'plamni yuklang yoki o'zingiznikini qo'shing.</div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button onClick={loadStarter} className="btn btn-primary btn-sm"><Plus size={14} /> Standart to'plamni yuklash</button>
+            <button onClick={() => setView('create')} className="btn btn-ghost btn-sm">O'z shablonini qo'shish</button>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>

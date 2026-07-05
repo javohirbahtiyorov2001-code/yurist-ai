@@ -2,7 +2,8 @@ import { Router } from 'express'
 import multer from 'multer'
 import pool from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
-import { analyzeContract } from '../services/claude.js'
+import { analyzeContract, redlineContract } from '../services/claude.js'
+import { saveWorkspaceItem } from '../services/workspace.js'
 import pdf from 'pdf-parse/lib/pdf-parse.js'
 
 const router = Router()
@@ -53,7 +54,38 @@ router.post('/analyze', requireAuth, upload.single('file'), async (req, res) => 
 
     res.json({ id: rows[0].id, analysis, riskScore })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('contracts/analyze:', err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// Redline: return clause-level suggested edits (tracked-changes style)
+router.post('/redline', requireAuth, upload.single('file'), async (req, res) => {
+  const { rows: userRows } = await pool.query('SELECT plan FROM users WHERE id = $1', [req.user.id])
+  if (!PRO_PLANS.includes(userRows[0]?.plan)) {
+    return res.status(403).json({ error: 'Contract redline requires a Pro or Entity plan.' })
+  }
+  const lang = req.body.lang || 'uz'
+
+  let text = ''
+  if (req.file) {
+    text = req.file.mimetype === 'application/pdf' ? (await pdf(req.file.buffer)).text : req.file.buffer.toString('utf8')
+  } else if (req.body.text) {
+    text = req.body.text
+  } else {
+    return res.status(400).json({ error: 'No file or text provided' })
+  }
+  if (text.length < 50) return res.status(400).json({ error: 'Contract text too short' })
+
+  try {
+    const result = await redlineContract(text, lang)
+    if (result.error) return res.status(422).json(result)
+    const filename = req.file?.originalname || 'Pasted contract'
+    await saveWorkspaceItem(req.user.organization_id, req.user.id, 'review', `Redline — ${filename}`, result)
+    res.json(result)
+  } catch (err) {
+    console.error('contracts/redline:', err)
+    res.status(500).json({ error: 'Server error' })
   }
 })
 

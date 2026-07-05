@@ -59,7 +59,8 @@ router.post('/run', requireAuth, upload.array('files', 8), async (req, res) => {
     await saveWorkspaceItem(req.user.organization_id, req.user.id, 'workflow', result.workflow?.title || 'Workflow', result)
     res.json(result)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('workflows/run:', err)
+    res.status(500).json({ error: 'Server error' })
   }
 })
 

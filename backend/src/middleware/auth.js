@@ -9,7 +9,7 @@ export async function requireAuth(req, res, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     // Attach organization + role + plan so routes can scope to the org
     const { rows } = await pool.query(
-      'SELECT id, email, organization_id, role, plan FROM users WHERE id = $1',
+      'SELECT id, email, organization_id, role, plan, account_type FROM users WHERE id = $1',
       [payload.id]
     )
     if (!rows.length) return res.status(401).json({ error: 'Invalid token' })

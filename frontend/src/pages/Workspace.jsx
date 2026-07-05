@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { api } from '../lib/api.js'
 import { downloadWord, printPDF, textToHtml } from '../lib/export.js'
 import ReactMarkdown from 'react-markdown'
-import { FolderOpen, FileText, Table2, Workflow, Trash2, Printer, ArrowLeft, Search } from 'lucide-react'
+import { getLang } from '../lib/lang.js'
+import { FolderOpen, FileText, Table2, Workflow, Trash2, Printer, ArrowLeft, Search, ShieldAlert, X } from 'lucide-react'
 
 const KIND_META = {
   draft: { icon: FileText, label: 'Document', color: 'var(--accent2)' },
@@ -16,9 +17,17 @@ export default function Workspace() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(null)
   const [error, setError] = useState('')
+  const [scanning, setScanning] = useState(false)
+  const [scan, setScan] = useState(null)
 
   const load = () => api.workspace.list().then(setItems).catch(e => setError(e.message))
   useEffect(() => { load() }, [])
+
+  const runScan = async () => {
+    setScanning(true); setError('')
+    try { setScan(await api.workspace.scan(getLang())) }
+    catch (e) { setError(e.message) } finally { setScanning(false) }
+  }
 
   const openItem = (id) => api.workspace.get(id).then(setOpen).catch(e => setError(e.message))
   const del = async (id, e) => { e?.stopPropagation(); if (!window.confirm('Delete this item?')) return; await api.workspace.remove(id); if (open?.id === id) setOpen(null); load() }
@@ -102,9 +111,34 @@ export default function Workspace() {
         <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, var(--accent), #9b6dff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FolderOpen size={17} color="#fff" />
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Workspace</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, flex: 1 }}>Workspace</h1>
+        {items.length > 0 && (
+          <button onClick={runScan} disabled={scanning} className="btn btn-primary btn-sm"><ShieldAlert size={14} /> {scanning ? 'Tekshirilmoqda…' : 'Risk scan'}</button>
+        )}
       </div>
       <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>Tashkilotingiz yaratgan barcha hujjatlar, tahlillar va workflow natijalari — bir joyda.</p>
+
+      {scan && (
+        <div style={{ marginBottom: 20, border: '1px solid rgba(124,109,255,0.25)', borderRadius: 12, background: 'var(--accent-bg)', padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <ShieldAlert size={15} color="var(--accent2)" />
+            <strong style={{ fontSize: 14 }}>Proaktiv risk tahlili</strong>
+            <button onClick={() => setScan(null)} style={{ marginLeft: 'auto', display: 'flex', border: 'none', background: 'none', cursor: 'pointer' }}><X size={14} color="var(--text3)" /></button>
+          </div>
+          {(scan.observations || []).length === 0
+            ? <div style={{ fontSize: 13, color: 'var(--text2)' }}>Jiddiy risklar aniqlanmadi.</div>
+            : scan.observations.map((o, i) => (
+              <div key={i} style={{ padding: '10px 0', borderTop: i ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                  <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, fontWeight: 700, textTransform: 'uppercase', background: 'var(--bg3)', color: o.severity === 'high' ? 'var(--red)' : o.severity === 'medium' ? 'var(--amber)' : 'var(--green)' }}>{o.severity}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{o.title}</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55, marginBottom: 3 }}>{o.detail}</div>
+                {o.action && <div style={{ fontSize: 12, color: 'var(--accent2)' }}>➜ {o.action}</div>}
+              </div>
+            ))}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>

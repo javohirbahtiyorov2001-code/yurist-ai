@@ -1,8 +1,31 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
+import { scanWorkspace } from '../services/claude.js'
 
 const router = Router()
+
+// Proactive risk scan across the org's saved documents
+router.post('/scan', requireAuth, async (req, res) => {
+  if (!req.user.organization_id) return res.json({ observations: [] })
+  const { rows } = await pool.query(
+    'SELECT kind, title, data FROM workspace_items WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 40',
+    [req.user.organization_id]
+  )
+  if (!rows.length) return res.json({ observations: [], empty: true })
+  const items = rows.map(r => ({
+    kind: r.kind,
+    title: r.title,
+    detail: r.data?.summary || r.data?.contractType || (Array.isArray(r.data?.risks) ? `${r.data.risks.length} risks` : ''),
+  }))
+  try {
+    const result = await scanWorkspace(items, req.body.lang || 'uz')
+    res.json(result)
+  } catch (err) {
+    console.error('workspace/scan:', err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
 
 // List all saved items for my organization (metadata only)
 router.get('/', requireAuth, async (req, res) => {

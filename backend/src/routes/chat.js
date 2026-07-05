@@ -132,7 +132,8 @@ router.post('/conversations/:id/messages', requireAuth, upload.single('file'), a
     res.write(`data: ${JSON.stringify({ done: true, citations })}\n\n`)
     res.end()
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`)
+    console.error('chat stream:', err)
+    res.write(`data: ${JSON.stringify({ error: 'Server error while generating response' })}\n\n`)
     res.end()
   }
 })

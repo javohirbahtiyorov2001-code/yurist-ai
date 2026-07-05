@@ -8,6 +8,9 @@ const router = Router()
 router.post('/register', async (req, res) => {
   const { email, password, fullName, company } = req.body
   if (!email || !password || !fullName) return res.status(400).json({ error: 'Missing required fields' })
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email address' })
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' })
+  if (password.length > 200) return res.status(400).json({ error: 'Password too long' })
 
   try {
     const hash = await bcrypt.hash(password, 10)
@@ -55,7 +58,7 @@ router.get('/me', async (req, res) => {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     const { rows } = await pool.query(
-      'SELECT id, email, full_name, company, plan, questions_used, organization_id, role FROM users WHERE id = $1', [payload.id]
+      'SELECT id, email, full_name, company, plan, questions_used, organization_id, role, account_type FROM users WHERE id = $1', [payload.id]
     )
     res.json(rows[0])
   } catch {
